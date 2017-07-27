@@ -87,7 +87,8 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
 #配置编译的头文件
-include_directories(src/main/jniLibs/include)
+include_directories(src/main/cpp/src)
+include_directories(src/main/cpp/include)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
