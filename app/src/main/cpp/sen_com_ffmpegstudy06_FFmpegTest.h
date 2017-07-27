@@ -22,9 +22,17 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_readFileInfoNewFrom
 
 JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegOldDecode
         (JNIEnv *, jobject, jstring, jstring);
+
+/*老师的版本*/
 JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegOldDecodeLaoShi
         (JNIEnv *, jobject, jstring, jstring);
+
+/*使用新Api 解码*/
 JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegNewDecode
+        (JNIEnv *, jobject, jstring, jstring);
+
+/*编解码边播放*/
+JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegDecodePlay
         (JNIEnv *, jobject, jstring, jstring);
 
 #ifdef __cplusplus
