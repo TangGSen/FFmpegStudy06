@@ -1,47 +1,55 @@
 package sen.com.ffmpegstudy06;
 
+import android.content.Intent;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
+
 
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+
+    private String filePath;
+    private String outFilePath;
+    private FFmpegTest fFmpegTest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-    // Example of a call to a native method
-    TextView tv = (TextView) findViewById(R.id.sample_text);
-        FFmpegTest test = new FFmpegTest();
-    tv.setText("获取信息："+test.getConfigInfo());
-      String filePath=  Environment.getExternalStorageDirectory()
-              .getAbsolutePath()+ File.separator+"Download"+File.separator+"ffmpeg1.mp4";
-        String outFilePath=  Environment.getExternalStorageDirectory()
+         TextView tv = (TextView) findViewById(R.id.sample_text);
+        fFmpegTest = new FFmpegTest();
+        tv.setText("获取信息：" + fFmpegTest.getConfigInfo());
+        filePath = Environment.getExternalStorageDirectory()
+                .getAbsolutePath() + File.separator + "Download" + File.separator + "ffmpeg1.mp4";
+        outFilePath = Environment.getExternalStorageDirectory()
                 .getAbsolutePath()+ File.separator+"Download"+File.separator+"ffmpeg1.yuv";
-        if (new File(filePath).exists()){
-            Log.e("sen","文件存在");
-//            test.readVideoInfoNewApi(filePath);
-//            test.readVideoInfoOldApi(filePath);
-//            test.readFileInfoNewFromLaoShi(filePath);
-//            test.callFFmpegOldDecode(filePath,outFilePath);
-            test.callFFmpegNewDecode(filePath,outFilePath);
-//            test.callFFmpegOldDecodeLaoShi(filePath,outFilePath);
-        }else{
-            Log.e("sen","文件不存在");
-        }
+
 
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
+    public void run(View view) {
+        if (new File(filePath).exists()) {
+            Log.e("sen", "文件存在");
+//            fFmpegTest.readVideoInfoNewApi(filePath);
+//            fFmpegTest.readVideoInfoOldApi(filePath);
+//            fFmpegTest.readFileInfoNewFromLaoShi(filePath);
+//            fFmpegTest.callFFmpegOldDecode(filePath,outFilePath);
+//            fFmpegTest.callFFmpegOldDecodeLaoShi(filePath,outFilePath);
+//            fFmpegTest.callFFmpegNewDecode(filePath, outFilePath);
 
+            fFmpegTest.callFFmpegDecodePlay(filePath,outFilePath);
+           // startActivity(new Intent(this, SDLActivity.class));
+
+        } else {
+            Log.e("sen", "文件不存在");
+        }
+    }
 }
 
 

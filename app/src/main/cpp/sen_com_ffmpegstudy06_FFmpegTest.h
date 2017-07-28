@@ -35,6 +35,10 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegNewDecode
 JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegDecodePlay
         (JNIEnv *, jobject, jstring, jstring);
 
+/*编解码音频*/
+JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegDecodeAudio
+        (JNIEnv *, jobject, jstring, jstring);
+
 #ifdef __cplusplus
 }
 #endif

@@ -23,6 +23,10 @@ public class FFmpegTest {
 
     public native void callFFmpegOldDecodeLaoShi(String filePath,String outFilePath) ;
 
+    public native void callFFmpegDecodePlay(String filePath,String outFilePath) ;
+    
+    public native void callFFmpegDecodeAudio(String filePath,String outFilePath) ;
+
 
 
 

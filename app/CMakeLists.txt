@@ -69,15 +69,12 @@ set_target_properties(
             swscale-4
             PROPERTIES IMPORTED_LOCATION
             ../../../../src/main/jniLibs/armeabi/libswscale-4.so)
-#SDL配置
-add_library(
-            SDL2
-            SHARED
-            IMPORTED)
-set_target_properties(
-            SDL2
-            PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/armeabi/libSDL2.so)
+
+#配置编译的头文件
+
+include_directories(src/main/jniLibs/include)
+
+
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 #判断编译器类型,如果是gcc编译器,则在编译选项中加入c++11支持
@@ -86,9 +83,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     message(STATUS "optional:-std=c++11")
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
-#配置编译的头文件
-include_directories(src/main/cpp/src)
-include_directories(src/main/cpp/include)
+
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -124,8 +119,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-                       native-lib  avcodec-57 avfilter-6 avformat-57 avutil-55 swresample-2 swscale-4 SDL2
-
+                       native-lib  avcodec-57 avfilter-6 avformat-57 avutil-55 swresample-2 swscale-4
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib} )
