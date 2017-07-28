@@ -21,6 +21,7 @@ extern "C" {
 #include "libavutil/imgutils.h"
 //视频像素格式转换
 #include "libswscale/swscale.h"
+#include "libswresample/swresample.h"
 
 }
 
@@ -663,6 +664,8 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegNewDecode
 }
 
 /**音频解码*/
+//44100HZ 16bit =2个字节
+#define MAX_AUDIO_FRAME_SIZE 44100 * 2
 JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegDecodeAudio
         (JNIEnv *env, jobject jobj,  jstring jfilepath, jstring jFileoutPath) {
 
@@ -698,10 +701,69 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegDecodeAud
         //没有音频流
         return;
     }
+    AVCodecParameters *codecpar = avFormatContext->streams[audio_index]->codecpar;
+    //返回解码器
+    AVCodec *avCodec = avcodec_find_decoder(codecpar->codec_id);
+//    AVCodecContext *avctx = avcodec_alloc_context3(avCodec); //这个无效？
+    AVCodecContext *avctx = avFormatContext->streams[audio_index]->codec;
+    int code_result = avcodec_open2(avctx,avCodec,NULL);
+    if(code_result!=0){
+        LOGE("打开解码器失败");
+        return;
+    }
+    AVPacket *pkt = (AVPacket *) malloc(sizeof(AVPacket));
+    AVFrame *in_frame = av_frame_alloc();
 
+    //上下文
+    SwrContext* swrContext = swr_alloc();
+    /**
+     * 参数一：上下文
+     * 2.输出声道布局，比如立体，环绕
+     * 3.输出音频格采样格式
+     */
+    int out_ch_layout = AV_CH_LAYOUT_STEREO;
+    AVSampleFormat out_sample_fmt =AV_SAMPLE_FMT_S16;
+    int in_ch_layout = av_get_default_channel_layout(avctx->channels);
 
+    //根据声道布局获取声道数量
+    int out_nb_chanels_size = av_get_channel_layout_nb_channels(out_ch_layout);
+    swr_alloc_set_opts(swrContext,AV_CH_LAYOUT_STEREO,
+                       out_sample_fmt,avctx->sample_rate,in_ch_layout,
+                       avctx->sample_fmt,avctx->sample_rate,0,NULL);
 
+    swr_init(swrContext);
+    //缓冲区
+    uint8_t *outBuffer = (uint8_t *)av_malloc(MAX_AUDIO_FRAME_SIZE);
+    FILE *out_file = fopen(cFileOutPath,"wb+");
+    int outBufferSize =0;
+    int currentIndex = 0;
+    while(av_read_frame(avFormatContext,pkt)>=0){
+        if (pkt->stream_index ==audio_index){
 
+            int result = avcodec_send_packet(avctx,pkt);
+//
+            result= avcodec_receive_frame(avctx,in_frame);
+            if (result != 0) {
+                LOGE("解码失败...");
+                continue;
+            }
+            swr_convert(swrContext,&outBuffer,MAX_AUDIO_FRAME_SIZE,(const uint8_t **)in_frame->data,in_frame->nb_samples);
+            outBufferSize =av_samples_get_buffer_size(NULL,
+                                                      out_nb_chanels_size,
+                                                      in_frame->nb_samples,out_sample_fmt,1);
+            fwrite(outBuffer,1,outBufferSize,out_file);
+            currentIndex++;
+            LOGE("当前音频解码到：%d",currentIndex);
+        }
+    }
+
+    fclose(out_file);
+    avcodec_close(avctx);
+    avformat_free_context(avFormatContext);
+    av_frame_free(&in_frame);
+    swr_free(&swrContext);
+    env->ReleaseStringUTFChars(jfilepath, cFilePath);
+    env->ReleaseStringUTFChars(jFileoutPath, cFileOutPath);
 
 
 

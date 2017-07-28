@@ -1,13 +1,11 @@
 package sen.com.ffmpegstudy06;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
-
 
 import java.io.File;
 
@@ -30,7 +28,8 @@ public class MainActivity extends AppCompatActivity {
         outFilePath = Environment.getExternalStorageDirectory()
                 .getAbsolutePath()+ File.separator+"Download"+File.separator+"ffmpeg1.yuv";
 
-
+        outFilePath =Environment.getExternalStorageDirectory()
+                .getAbsolutePath()+ File.separator+"Download"+File.separator+"ffmpeg_audio.pcm";
     }
 
     public void run(View view) {
@@ -43,7 +42,8 @@ public class MainActivity extends AppCompatActivity {
 //            fFmpegTest.callFFmpegOldDecodeLaoShi(filePath,outFilePath);
 //            fFmpegTest.callFFmpegNewDecode(filePath, outFilePath);
 
-            fFmpegTest.callFFmpegDecodePlay(filePath,outFilePath);
+//            fFmpegTest.callFFmpegDecodePlay(filePath,outFilePath);
+            fFmpegTest.callFFmpegDecodeAudio(filePath, outFilePath);
            // startActivity(new Intent(this, SDLActivity.class));
 
         } else {
