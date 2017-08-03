@@ -1,5 +1,6 @@
 package sen.com.ffmpegstudy06;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -8,6 +9,8 @@ import android.view.View;
 import android.widget.TextView;
 
 import java.io.File;
+
+import sen.com.video.ActivityPlay;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,6 +52,12 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.e("sen", "文件不存在");
         }
+    }
+
+
+    public void play(View view){
+        Intent intent = new Intent(this,ActivityPlay.class);
+        startActivity(intent);
     }
 }
 

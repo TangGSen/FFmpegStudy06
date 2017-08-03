@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -9,25 +9,24 @@
     tools:context="sen.com.ffmpegstudy06.MainActivity">
 
     <Button
-        android:layout_gravity="center_vertical"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="运行"
-        android:onClick="run"
+        android:text="start"
+        android:onClick="start"
        />
     <Button
-        android:layout_gravity="center_vertical"
+        android:layout_gravity="right"
+        android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="播放"
-        android:onClick="play"
+        android:text="stop"
+        android:onClick="stop"
        />
 
+    <sen.com.video.VideoView
+        android:id="@+id/sufaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
-    <TextView
-        android:layout_marginTop="8dp"
-        android:id="@+id/sample_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
 
-</LinearLayout>
+</FrameLayout>

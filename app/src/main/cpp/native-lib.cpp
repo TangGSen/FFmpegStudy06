@@ -663,6 +663,7 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegNewDecode
 
 }
 
+
 /**音频解码*/
 //44100HZ 16bit =2个字节
 #define MAX_AUDIO_FRAME_SIZE 44100 * 2
