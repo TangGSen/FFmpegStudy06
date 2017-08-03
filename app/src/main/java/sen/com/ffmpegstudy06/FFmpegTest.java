@@ -31,6 +31,5 @@ public class FFmpegTest {
 
 
 
-    // Used to load the 'native-lib' library on application startup.
 
 }

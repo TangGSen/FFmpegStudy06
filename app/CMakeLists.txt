@@ -59,6 +59,14 @@ set_target_properties(
             swresample-2
             PROPERTIES IMPORTED_LOCATION
             ../../../../src/main/jniLibs/armeabi/libswresample-2.so)
+add_library(
+            libpostproc-54
+            SHARED
+            IMPORTED)
+set_target_properties(
+            libpostproc-54
+            PROPERTIES IMPORTED_LOCATION
+            ../../../../src/main/jniLibs/armeabi/libpostproc-54.so)
 
 # 视频像素数据格式转换
 add_library(
@@ -69,6 +77,7 @@ set_target_properties(
             swscale-4
             PROPERTIES IMPORTED_LOCATION
             ../../../../src/main/jniLibs/armeabi/libswscale-4.so)
+
 
 #配置编译的头文件
 
@@ -119,7 +128,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-                       native-lib  avcodec-57 avfilter-6 avformat-57 avutil-55 swresample-2 swscale-4
+                       native-lib  avcodec-57 avfilter-6 avformat-57 avutil-55 swresample-2 libpostproc-54 swscale-4
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib} )

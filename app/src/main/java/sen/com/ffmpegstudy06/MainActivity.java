@@ -40,10 +40,10 @@ public class MainActivity extends AppCompatActivity {
 //            fFmpegTest.readFileInfoNewFromLaoShi(filePath);
 //            fFmpegTest.callFFmpegOldDecode(filePath,outFilePath);
 //            fFmpegTest.callFFmpegOldDecodeLaoShi(filePath,outFilePath);
-//            fFmpegTest.callFFmpegNewDecode(filePath, outFilePath);
+            fFmpegTest.callFFmpegNewDecode(filePath, outFilePath);
 
 //            fFmpegTest.callFFmpegDecodePlay(filePath,outFilePath);
-            fFmpegTest.callFFmpegDecodeAudio(filePath, outFilePath);
+//            fFmpegTest.callFFmpegDecodeAudio(filePath, outFilePath);
            // startActivity(new Intent(this, SDLActivity.class));
 
         } else {
