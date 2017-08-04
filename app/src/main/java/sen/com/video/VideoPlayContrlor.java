@@ -1,5 +1,7 @@
 package sen.com.video;
 
+import android.view.Surface;
+
 /**
  * 视频播放的控制器
  *
@@ -10,6 +12,6 @@ public class VideoPlayContrlor {
     static {
         System.loadLibrary("native-lib");
     }
-
-    public native void init();
+    //绘制到surfaceView 上
+    public native void render(String filePath, Surface surface);
 }
