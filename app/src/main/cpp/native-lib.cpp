@@ -47,18 +47,15 @@ Java_sen_com_ffmpegstudy06_FFmpegTest_readVideoInfoOldApi(
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
         LOGE("视频文件打开失败");
-        char *erorrInfo;
-        av_strerror(file_open_result, erorrInfo, 1024);
-        LOGE("视频文件打开失败：%s", erorrInfo);
+
         return;
     }
     //3.获取文件信息(文件流：视频流，音频流，字幕流)
     //>=0 if OK, AVERROR_xxx on error
     int find_stream_result = avformat_find_stream_info(avFormatContext, NULL);
     if (find_stream_result < 0) {
-        char *erorrInfo;
-        av_strerror(find_stream_result, erorrInfo, 1024);
-        LOGE("获取文件信息失败：%s", erorrInfo);
+
+        LOGE("获取文件信息失败");
         return;
     }
 
@@ -121,18 +118,15 @@ Java_sen_com_ffmpegstudy06_FFmpegTest_readVideoInfoNewApi(
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
         LOGE("视频文件打开失败");
-        char *erorrInfo;
-        av_strerror(file_open_result, erorrInfo, 1024);
-        LOGE("视频文件打开失败：%s", erorrInfo);
+
         return;
     }
     //3.获取文件信息(文件流：视频流，音频流，字幕流)
     //>=0 if OK, AVERROR_xxx on error
     int find_stream_result = avformat_find_stream_info(avFormatContext, NULL);
     if (find_stream_result < 0) {
-        char *erorrInfo;
-        av_strerror(find_stream_result, erorrInfo, 1024);
-        LOGE("获取文件信息失败：%s", erorrInfo);
+
+        LOGE("获取文件信息失败");
         return;
     }
 
@@ -293,18 +287,16 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegOldDecode
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
         LOGE("视频文件打开失败");
-        char *erorrInfo;
-        av_strerror(file_open_result, erorrInfo, 1024);
-        LOGE("视频文件打开失败：%s", erorrInfo);
+
+        LOGE("视频文件打开失败：%s");
         return;
     }
     //3.获取文件信息(文件流：视频流，音频流，字幕流)
     //>=0 if OK, AVERROR_xxx on error
     int find_stream_result = avformat_find_stream_info(avFormatContext, NULL);
     if (find_stream_result < 0) {
-        char *erorrInfo;
-        av_strerror(find_stream_result, erorrInfo, 1024);
-        LOGE("获取文件信息失败：%s", erorrInfo);
+
+        LOGE("获取文件信息失败");
         return;
     }
 
@@ -476,18 +468,15 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegNewDecode
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
         LOGE("视频文件打开失败");
-        char *erorrInfo;
-        av_strerror(file_open_result, erorrInfo, 1024);
-        LOGE("视频文件打开失败：%s", erorrInfo);
+
         return;
     }
     //3.获取文件信息(文件流：视频流，音频流，字幕流)
     //>=0 if OK, AVERROR_xxx on error
     int find_stream_result = avformat_find_stream_info(avFormatContext, NULL);
     if (find_stream_result < 0) {
-        char *erorrInfo;
-        av_strerror(find_stream_result, erorrInfo, 1024);
-        LOGE("获取文件信息失败：%s", erorrInfo);
+
+        LOGE("获取文件信息失败");
         return;
     }
 
@@ -679,9 +668,7 @@ JNIEXPORT void JNICALL Java_sen_com_ffmpegstudy06_FFmpegTest_callFFmpegDecodeAud
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
         LOGE("文件打开失败");
-        char *erorrInfo;
-        av_strerror(file_open_result, erorrInfo, 1024);
-        LOGE("文件打开失败：%s", erorrInfo);
+
         return;
     }
 

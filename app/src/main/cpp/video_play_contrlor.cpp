@@ -1,4 +1,4 @@
-#include "VideoPlayContrlor.h"
+#include "video.h"
 #include <string>
 #include "android/log.h"
 //原生绘制的头文件
@@ -37,19 +37,18 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoPlayContrlor_render
     //0 on success, a negative AVERROR on failure.
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
-        LOGE("视频文件打开失败");
-        char *erorrInfo;
-        av_strerror(file_open_result, erorrInfo, 1024);
-        LOGE("视频文件打开失败：%s", erorrInfo);
+        LOGE("视频文件打开失败:%s",cFilePath);
+
         return;
     }
+
+
     //3.获取文件信息(文件流：视频流，音频流，字幕流)
     //>=0 if OK, AVERROR_xxx on error
     int find_stream_result = avformat_find_stream_info(avFormatContext, NULL);
     if (find_stream_result < 0) {
-        char *erorrInfo;
-        av_strerror(find_stream_result, erorrInfo, 1024);
-        LOGE("获取文件信息失败：%s", erorrInfo);
+
+        LOGE("获取文件信息失败");
         return;
     }
 

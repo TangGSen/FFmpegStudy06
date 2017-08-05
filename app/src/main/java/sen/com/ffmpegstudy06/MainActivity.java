@@ -6,17 +6,22 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.File;
 
+import sen.com.audio.AudioTest;
 import sen.com.video.ActivityPlay;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String filePath;
+    private String rootPath;
     private String outFilePath;
     private FFmpegTest fFmpegTest;
+    private EditText editText;
+    private EditText createFile;
+    private String inFilePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,28 +31,32 @@ public class MainActivity extends AppCompatActivity {
          TextView tv = (TextView) findViewById(R.id.sample_text);
         fFmpegTest = new FFmpegTest();
         tv.setText("获取信息：" + fFmpegTest.getConfigInfo());
-        filePath = Environment.getExternalStorageDirectory()
-                .getAbsolutePath() + File.separator + "Download" + File.separator + "ffmpeg1.mp4";
-        outFilePath = Environment.getExternalStorageDirectory()
-                .getAbsolutePath()+ File.separator+"Download"+File.separator+"ffmpeg1.yuv";
+        rootPath = Environment.getExternalStorageDirectory()
+                .getAbsolutePath() + File.separator + "Download" + File.separator ;
 
-        outFilePath =Environment.getExternalStorageDirectory()
-                .getAbsolutePath()+ File.separator+"Download"+File.separator+"ffmpeg_audio.pcm";
+
+        editText = (EditText) findViewById(R.id.path);
+        createFile = (EditText) findViewById(R.id.createFile);
     }
 
     public void run(View view) {
-        if (new File(filePath).exists()) {
+        inFilePath =rootPath+editText.getText().toString();
+        outFilePath = rootPath+createFile.getText().toString();
+        if (new File(inFilePath).exists()) {
             Log.e("sen", "文件存在");
-//            fFmpegTest.readVideoInfoNewApi(filePath);
-//            fFmpegTest.readVideoInfoOldApi(filePath);
-//            fFmpegTest.readFileInfoNewFromLaoShi(filePath);
-//            fFmpegTest.callFFmpegOldDecode(filePath,outFilePath);
-//            fFmpegTest.callFFmpegOldDecodeLaoShi(filePath,outFilePath);
-            fFmpegTest.callFFmpegNewDecode(filePath, outFilePath);
+//            fFmpegTest.readVideoInfoNewApi(inFilePath);
+//            fFmpegTest.readVideoInfoOldApi(inFilePath);
+//            fFmpegTest.readFileInfoNewFromLaoShi(inFilePath);
+//            fFmpegTest.callFFmpegOldDecode(inFilePath,outFilePath);
+//            fFmpegTest.callFFmpegOldDecodeLaoShi(inFilePath,outFilePath);
+//            fFmpegTest.callFFmpegNewDecode(inFilePath, outFilePath);
 
-//            fFmpegTest.callFFmpegDecodePlay(filePath,outFilePath);
-//            fFmpegTest.callFFmpegDecodeAudio(filePath, outFilePath);
-           // startActivity(new Intent(this, SDLActivity.class));
+//            fFmpegTest.callFFmpegDecodePlay(inFilePath,outFilePath);
+//            fFmpegTest.callFFmpegDecodeAudio(inFilePath, outFilePath);
+
+//            new AudioTest().sound(inFilePath,outFilePath);
+//            new AudioTest().sound2(inFilePath,outFilePath);
+            new AudioTest().playSound(inFilePath,outFilePath);
 
         } else {
             Log.e("sen", "文件不存在");

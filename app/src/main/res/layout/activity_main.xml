@@ -7,7 +7,19 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="sen.com.ffmpegstudy06.MainActivity">
+    <EditText
+        android:id="@+id/path"
+        android:layout_gravity="bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="解码的路径：ffmpeg.mp4"/>
 
+    <EditText
+        android:id="@+id/createFile"
+        android:layout_gravity="bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="生成文件名：ffmpeg.mp4"/>
     <Button
         android:layout_gravity="center_vertical"
         android:layout_width="wrap_content"

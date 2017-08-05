@@ -15,6 +15,8 @@ extern "C" {
 JNIEXPORT void JNICALL Java_sen_com_video_VideoPlayContrlor_render
   (JNIEnv *, jobject,jstring,jobject);
 
+
+
 #ifdef __cplusplus
 }
 #endif

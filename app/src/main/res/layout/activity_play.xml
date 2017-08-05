@@ -23,6 +23,15 @@
         android:onClick="stop"
        />
 
+    <EditText
+        android:id="@+id/path"
+        android:layout_gravity="bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:textColorHighlight="@android:color/white"
+        android:hint="播放的路径：ffmpeg.mp4"/>
+
     <sen.com.video.VideoView
         android:id="@+id/sufaceView"
         android:layout_width="match_parent"
