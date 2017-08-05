@@ -364,7 +364,7 @@ JNIEXPORT void JNICALL Java_sen_com_audio_AudioTest_playSound
             memcpy(byte,outBuffer,outBufferSize);
             env->ReleaseByteArrayElements(byteArray,byte,0);
              env->CallIntMethod(audio_track_obj,audio_write_mid,byteArray,0,outBufferSize);
-            fwrite(outBuffer,1,outBufferSize,out_file);
+//            fwrite(outBuffer,1,outBufferSize,out_file);
             currentIndex++;
             LOGE("当前音频解码到：%d",currentIndex);
 
