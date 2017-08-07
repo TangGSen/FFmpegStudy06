@@ -12,6 +12,7 @@ import android.widget.TextView;
 import java.io.File;
 
 import sen.com.audio.AudioTest;
+import sen.com.thread.PThread;
 import sen.com.video.ActivityPlay;
 
 public class MainActivity extends AppCompatActivity {
@@ -22,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
     private EditText createFile;
     private String inFilePath;
+    private PThread thread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
         editText = (EditText) findViewById(R.id.path);
         createFile = (EditText) findViewById(R.id.createFile);
+        thread = new PThread();
     }
 
     public void run(View view) {
@@ -68,6 +71,21 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this,ActivityPlay.class);
         startActivity(intent);
     }
+     public void init(View view){
+
+         thread.init();
+    }
+    public void createThread(View view){
+         thread.createThread();
+    }
+    public void destory(View view){
+         thread.destroy();
+    }
+
+
+
+
+
 }
 
 

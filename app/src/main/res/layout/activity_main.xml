@@ -34,11 +34,41 @@
         android:text="播放"
         android:onClick="play"
        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:layout_gravity="center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="init"
+            android:onClick="init"
+            />
+        <Button
+            android:layout_gravity="center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="创建多线程"
+            android:onClick="createThread"
+            />
+        <Button
+            android:layout_gravity="center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="destory"
+            android:onClick="destory"
+            />
+
+    </LinearLayout>
+
+
 
 
     <TextView
         android:layout_marginTop="8dp"
         android:id="@+id/sample_text"
+        android:layout_gravity="bottom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

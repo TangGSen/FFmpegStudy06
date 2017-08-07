@@ -121,6 +121,8 @@ add_library( # Sets the name of the library.
              # file are automatically included.
              src/main/cpp/native-lib.cpp
              src/main/cpp/audio.cpp
+             src/main/cpp/thread.cpp
+             src/main/cpp/video_audio.cpp
              src/main/cpp/video_play_contrlor.cpp )
 
 # Searches for a specified prebuilt library and stores the path as a
