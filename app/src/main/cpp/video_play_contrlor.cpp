@@ -58,7 +58,7 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoPlayContrlor_render
     int i = 0;
     int av_stream_index = -1;
     for (i; i <= avSize; i++) {
-        if (avFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             av_stream_index = i;
             break;
         }

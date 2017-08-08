@@ -1,4 +1,4 @@
-#include "video.h"
+#include "video_audio_play.h"
 #include <string>
 #include "android/log.h"
 //原生绘制的头文件
@@ -63,7 +63,7 @@ void init_input_format_comtx(SenPlayer *player ,const char *cFilePath){
     int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
     if (file_open_result != 0) {
         player->code = FAILD;
-        player->errorMsg ="视频文件打开失败";
+//        player->errorMsg ="视频文件打开失败";
         return ;
     }
     //3.获取文件信息(文件流：视频流，音频流，字幕流)
@@ -71,23 +71,21 @@ void init_input_format_comtx(SenPlayer *player ,const char *cFilePath){
     int find_stream_result = avformat_find_stream_info(avFormatContext, NULL);
     if (find_stream_result < 0) {
         player->code = FAILD;
-        player->errorMsg="获取文件信息失败";
+//        player->errorMsg="获取文件信息失败";
         return ;
     }
     player->avFormatContext=avFormatContext;
     player->code=SUCCESS;
-    return ;
 }
 //.1遍历查找文件流中的视频流的索引位置
 void findVideoAduioIndex(SenPlayer *player){
     AVFormatContext *avFormatContext =player->avFormatContext;
-    int avSize = avFormatContext->nb_streams;
     int i = 0;
-    for (i; i <= avSize; i++) {
-        if (avFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+    for (i; i < avFormatContext->nb_streams; i++) {
+        if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             player->video_stream_index=i;
 
-        }else if(avFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO){
+        }else if(avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO){
            player->audio_stream_index =i;
         }
     }
@@ -102,7 +100,7 @@ void init_code_contx_open(SenPlayer *player,int stream_index,int index){
     //返回解码器
     AVCodec *avCodec = avcodec_find_decoder(codecContext->codec_id);
     if (avCodec == NULL) {
-        player->errorMsg="找不到对应的解码器";
+//        player->errorMsg="找不到对应的解码器";
         player->code=FAILD;
         return;
     }
@@ -110,7 +108,7 @@ void init_code_contx_open(SenPlayer *player,int stream_index,int index){
     //zero on success, a negative value on error
     int open_codec_result = avcodec_open2(codecContext, avCodec, NULL);
     if (open_codec_result != 0) {
-        player->errorMsg="打开解码器失败";
+//        player->errorMsg="打开解码器失败";
         player->code=FAILD;
         return;
     }
@@ -120,7 +118,7 @@ void init_code_contx_open(SenPlayer *player,int stream_index,int index){
 }
 
 /**解码视频的*/
-void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer *outBuffer,
+void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer outBuffer,
                      AVFrame *in_frame_picture, AVFrame *out_frame_picture) {
     AVCodecContext *codecContext = player->input_code_contx[VIDEO_IN_ARRAY_INDEX];
 //    新Api
@@ -142,7 +140,7 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer
     //1.lock
     //设置缓冲区的大小
     ANativeWindow_setBuffersGeometry(player->aNativeWindow,codecContext->width,codecContext->width,WINDOW_FORMAT_RGBA_8888);
-    ANativeWindow_lock(player->aNativeWindow,outBuffer,NULL);
+    ANativeWindow_lock(player->aNativeWindow,&outBuffer,NULL);
     // render
     sws_scale(player->swsContext,
               (const uint8_t *const *) in_frame_picture->data,
@@ -151,8 +149,8 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer
               out_frame_picture->linesize
     );
     // 获取stride
-    uint8_t * dst = (uint8_t *) outBuffer->bits;
-    int dstStride = outBuffer->stride * 4;
+    uint8_t * dst = (uint8_t *) outBuffer.bits;
+    int dstStride = outBuffer.stride * 4;
     uint8_t * src = (uint8_t*) (out_frame_picture->data[0]);
     int srcStride = out_frame_picture->linesize[0];
 
@@ -201,7 +199,7 @@ void * decodeDataThreadRun(void *args){
     LOGE("out_file_yuv文件存在");
     int  frame_index = 0;
 
-    ANativeWindow_Buffer* outBuffer ;
+    ANativeWindow_Buffer outBuffer ;
 
     SwsContext *swsContext = sws_getContext(codecContext->width, codecContext->height,
                                             codecContext->pix_fmt, codecContext->width,
@@ -223,6 +221,13 @@ void * decodeDataThreadRun(void *args){
     av_frame_free(&in_frame_picture);
     av_frame_free(&out_frame_picture);
 
+    sws_freeContext(player->swsContext);
+    ANativeWindow_release(player->aNativeWindow);
+    avcodec_close(player->input_code_contx[VIDEO_IN_ARRAY_INDEX]);
+    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
+    avformat_free_context(player->avFormatContext);
+    free(player);
+    return NULL;
 }
 
 //解码前进行初始化AndroidWindons
@@ -232,14 +237,14 @@ void decode_window_prepare(JNIEnv *env,jobject jSurface,SenPlayer *player){
 
 }
 
-JNIEXPORT void JNICALL Java_sen_com_video_VideoPlayContrlor_render
+JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
         (JNIEnv *env, jobject jObj,jstring jFilePath,jobject jSurface){
     const char *cFilePath = env->GetStringUTFChars(jFilePath, NULL);
     SenPlayer *player = (SenPlayer *) malloc(sizeof(SenPlayer));
     //1初始化封装格式上下文
     init_input_format_comtx(player,cFilePath);
     if (player->code!=0){
-        LOGE(player->errorMsg);
+        LOGE("%s",player->errorMsg);
         return;
     }
    // 2.遍历查找的音视频流的索引位置
@@ -258,13 +263,8 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoPlayContrlor_render
 
 
 
-    pthread_join(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX],NULL);
+//    pthread_join(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX],NULL);
     //稀放
-    sws_freeContext(player->swsContext);
-    ANativeWindow_release(player->aNativeWindow);
-    avcodec_close(player->input_code_contx[VIDEO_IN_ARRAY_INDEX]);
-    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
-    avformat_free_context(player->avFormatContext);
-    free(player);
-    env->ReleaseStringUTFChars(jFilePath, cFilePath);
+
+   // env->ReleaseStringUTFChars(jFilePath, cFilePath);
 }
