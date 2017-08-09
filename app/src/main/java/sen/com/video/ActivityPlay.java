@@ -37,11 +37,13 @@ public class ActivityPlay extends AppCompatActivity {
     public void start(View view) {
        String filePath = Environment.getExternalStorageDirectory()
                 .getAbsolutePath() + File.separator + "Download" + File.separator + editText.getText().toString();
+        String audioOutFilePath = Environment.getExternalStorageDirectory()
+                .getAbsolutePath() + File.separator + "Download" + File.separator + "audio.pcm";
         if (new File(filePath).exists()){
             Surface surface = surfaceView.getHolder().getSurface();
             //surface 传入Nativie 用于绘制
 //            videoPlayContrlor.render(filePath,surface);
-            new VideoAudioPlay().videoAudio(filePath,surface);
+            new VideoAudioPlay().videoAudio(filePath,audioOutFilePath,surface);
             Log.e("sen","存在");
         }else{
             Log.e("sen","不存在");

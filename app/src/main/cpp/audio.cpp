@@ -25,7 +25,7 @@ JNIEXPORT void JNICALL Java_sen_com_audio_AudioTest_sound
     av_register_all();
     AVFormatContext * avFormatContext = avformat_alloc_context();
     result = avformat_open_input(&avFormatContext,cInFilePath,NULL,NULL);
-    if (result !=NULL){
+    if (result !=0){
         LOGE("文件打开失败%d", result);
         return;
     }
@@ -188,8 +188,8 @@ JNIEXPORT void JNICALL Java_sen_com_audio_AudioTest_sound2
     AVCodecParameters *codecpar = avFormatContext->streams[audio_index]->codecpar;
     //返回解码器
     AVCodec *avCodec = avcodec_find_decoder(codecpar->codec_id);
-//    AVCodecContext *avctx = avcodec_alloc_context3(avCodec); //这个无效？
-    AVCodecContext *avctx = avFormatContext->streams[audio_index]->codec;
+    AVCodecContext *avctx = avcodec_alloc_context3(avCodec); //这个无效？
+//    AVCodecContext *avctx = avFormatContext->streams[audio_index]->codec;
     int code_result = avcodec_open2(avctx,avCodec,NULL);
     if(code_result!=0){
         LOGE("打开解码器失败");

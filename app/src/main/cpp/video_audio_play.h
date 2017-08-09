@@ -13,7 +13,7 @@ extern "C" {
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
-  (JNIEnv *, jobject, jstring, jobject);
+  (JNIEnv *, jobject, jstring,jstring , jobject);
 
 #ifdef __cplusplus
 }
