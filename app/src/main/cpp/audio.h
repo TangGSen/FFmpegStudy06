@@ -20,6 +20,8 @@ JNIEXPORT void JNICALL Java_sen_com_audio_AudioTest_playSound
         (JNIEnv *, jobject, jstring, jstring);
 JNIEXPORT void JNICALL Java_sen_com_audio_AudioTest_playSoundInThread
         (JNIEnv *, jobject, jstring, jstring);
+JNIEXPORT void JNICALL Java_sen_com_audio_AudioTest_playVideoSoundInThread
+        (JNIEnv *, jobject, jstring, jstring,jobject);
 
 #ifdef __cplusplus
 }
