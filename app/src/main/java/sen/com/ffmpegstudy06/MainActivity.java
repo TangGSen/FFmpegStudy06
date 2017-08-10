@@ -59,7 +59,8 @@ public class MainActivity extends AppCompatActivity {
 
 //            new AudioTest().sound(inFilePath,outFilePath);
 //            new AudioTest().sound2(inFilePath,outFilePath);
-            new AudioTest().playSound(inFilePath,outFilePath);
+//            new AudioTest().playSound(inFilePath,outFilePath);
+            new AudioTest().playSoundInThread(inFilePath,outFilePath);
 
         } else {
             Log.e("sen", "文件不存在");

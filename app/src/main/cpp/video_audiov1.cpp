@@ -1,10 +1,10 @@
 #include "video_audio_play.h"
 #include <string>
+#include <unistd.h>
 #include "android/log.h"
 //原生绘制的头文件
 #include "android/native_window.h"
 #include "android/native_window_jni.h"
-#include "unistd.h"
 
 
 extern "C" {
@@ -214,90 +214,29 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
                                                        in_frame->nb_samples,
                                                        player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
                                                        1);
-//        int outBufferSize = av_samples_get_buffer_size(in_frame->linesize,
-//                                                       player->out_nb_chanels_size,
-//                                                       in_frame->nb_samples,
-//                                                       player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
-//                                                       1);
-//        fwrite(audioOutBuffer,1,outBufferSize,outFile);
+        fwrite(audioOutBuffer,1,outBufferSize,outFile);
         //由于AduidoTrack 需要的参数是三个，并且返回值是Int
         //所以将outBuffer 自定义uint8 类型转成byte数据
 
-        jbyteArray byteArray = env->NewByteArray(outBufferSize);
-        //通过 *byte 指针来操作byteArray 里面数据
-        jbyte *byte = env->GetByteArrayElements(byteArray, NULL);
-        //赋值outBuffer --》byte
-        memcpy(byte, audioOutBuffer, outBufferSize);
-        env->ReleaseByteArrayElements(byteArray, byte, 0);
-        env->CallIntMethod(player->audio_track_obj, player->audio_write_mid, byteArray, 0,
-                           outBufferSize);
-//            fwrite(outBuffer,1,outBufferSize,out_file);
-
-        //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
-        env->DeleteLocalRef(byteArray);
+//        jbyteArray byteArray = env->NewByteArray(outBufferSize);
+//        //通过 *byte 指针来操作byteArray 里面数据
+//        jbyte *byte = env->GetByteArrayElements(byteArray, NULL);
+//        //赋值outBuffer --》byte
+//        memcpy(byte, audioOutBuffer, outBufferSize);
+//        env->ReleaseByteArrayElements(byteArray, byte, 0);
+//        env->CallIntMethod(player->audio_track_obj, player->audio_write_mid, byteArray, 0,
+//                           outBufferSize);
+////            fwrite(outBuffer,1,outBufferSize,out_file);
 //
-//        //睡眠一下
+//        //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
+//        env->DeleteLocalRef(byteArray);
+////
+////        //睡眠一下
 //        sleep(1);
-        usleep(1000*16);
     }
     free(audioOutBuffer);
     av_frame_free(&in_frame);
 
-}
-
-
-void * playSoundInThread(void *arg){
-    JNIEnv *env;
-    javaVM->AttachCurrentThread(&env, NULL);
-    SenPlayer *player = (SenPlayer *) arg;
-    int outBufferSize =0;
-    int currentIndex = 0;
-    uint8_t *outBuffer = (uint8_t *)av_malloc(MAX_AUDIO_FRAME_SIZE);
-    FILE *out_file = fopen(player->audioOutFilePath,"wb+");
-    AVPacket *pkt = (AVPacket *) malloc(sizeof(AVPacket));
-    AVFrame *in_frame = av_frame_alloc();
-    while(av_read_frame(player->avFormatContext,pkt)>=0){
-        if (pkt->stream_index ==player->audio_stream_index){
-
-            int result = avcodec_send_packet(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],pkt);
-            result= avcodec_receive_frame(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],in_frame);
-            if (result != 0) {
-                LOGE("解码失败...");
-                continue;
-            }
-            usleep(1000*16);
-            swr_convert(player->swrContext,&outBuffer,MAX_AUDIO_FRAME_SIZE,(const uint8_t **)in_frame->data,in_frame->nb_samples);
-            outBufferSize =av_samples_get_buffer_size(in_frame->linesize,
-                                                      player->out_nb_chanels_size,
-                                                      in_frame->nb_samples,player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,1);
-            //由于AduidoTrack 需要的参数是三个，并且返回值是Int
-            //所以将outBuffer 自定义uint8 类型转成byte数据
-
-            jbyteArray byteArray=env->NewByteArray(outBufferSize);
-            //通过 *byte 指针来操作byteArray 里面数据
-            jbyte *byte = env->GetByteArrayElements(byteArray,NULL);
-            //赋值outBuffer --》byte
-            memcpy(byte,outBuffer,outBufferSize);
-            env->ReleaseByteArrayElements(byteArray,byte,0);
-            env->CallIntMethod(player->audio_track_obj,player->audio_write_mid,byteArray,0,outBufferSize);
-//            fwrite(outBuffer,1,outBufferSize,out_file);
-            currentIndex++;
-            LOGE("当前音频解码到：%d",currentIndex);
-
-            //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
-            env->DeleteLocalRef(byteArray);
-
-            //睡眠一下
-
-        }
-    }
-    javaVM->DetachCurrentThread();
-    av_packet_free(&pkt);
-    fclose(out_file);
-    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
-    avformat_free_context(player->avFormatContext);
-    av_frame_free(&in_frame);
-    swr_free(&player->swrContext);
 }
 
 
@@ -460,8 +399,8 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
     //打开找到视频的解密器并打开
     //如果那个返回成功，就解码那个，因为有些Mp3,有些事音频的
     //将视频的AVCodeConotex 放在数组的第一位
-    init_code_contx_open(player,player->video_stream_index,VIDEO_IN_ARRAY_INDEX);
-    init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
+    init_code_contx_open(player,player->video_stream_index,0);
+    init_code_contx_open(player,player->audio_stream_index,1);
     //初始化安卓
     decode_window_prepare(env,jSurface,player);
     docdde_audio_prepare(player);
@@ -471,7 +410,7 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
 //    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL, decodeVideoDataThreadRun,
 //                   (void *) player);
     pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
-                   playSoundInThread,
+                   decodeAudioDataThreadRun,
                    (void *) player);
 
 

@@ -18,6 +18,7 @@ public class AudioTest {
     public native void sound(String filePath,String outFilePath) ;
     public native void sound2(String filePath,String outFilePath) ;
     public native void playSound(String filePath,String outFilePath) ;
+    public native void playSoundInThread(String filePath,String outFilePath) ;
 
     //提供给ＪＮＩ　调用
     public AudioTrack createAudioTrack(){
