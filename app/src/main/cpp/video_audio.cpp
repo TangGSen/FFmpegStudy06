@@ -67,61 +67,6 @@ struct SenPlayer{
 };
 
 
-void * playSoundInThread(void *arg){
-    JNIEnv *env;
-    javaVM->AttachCurrentThread(&env, NULL);
-    SenPlayer *player = (SenPlayer *) arg;
-    int outBufferSize =0;
-    int currentIndex = 0;
-    uint8_t *outBuffer = (uint8_t *)av_malloc(MAX_AUDIO_FRAME_SIZE);
-    FILE *out_file = fopen(player->audioOutFilePath,"wb+");
-    AVPacket *pkt = (AVPacket *) malloc(sizeof(AVPacket));
-    AVFrame *in_frame = av_frame_alloc();
-    while(av_read_frame(player->avFormatContext,pkt)>=0){
-        if (pkt->stream_index ==player->audio_stream_index){
-
-            int result = avcodec_send_packet(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],pkt);
-//
-            result= avcodec_receive_frame(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],in_frame);
-            if (result != 0) {
-                LOGE("解码失败...");
-                continue;
-            }
-            swr_convert(player->swrContext,&outBuffer,MAX_AUDIO_FRAME_SIZE,(const uint8_t **)in_frame->data,in_frame->nb_samples);
-            outBufferSize =av_samples_get_buffer_size(NULL,
-                                                      player->out_nb_chanels_size,
-                                                      in_frame->nb_samples,player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,1);
-            //由于AduidoTrack 需要的参数是三个，并且返回值是Int
-            //所以将outBuffer 自定义uint8 类型转成byte数据
-
-            jbyteArray byteArray=env->NewByteArray(outBufferSize);
-            //通过 *byte 指针来操作byteArray 里面数据
-            jbyte *byte = env->GetByteArrayElements(byteArray,NULL);
-            //赋值outBuffer --》byte
-            memcpy(byte,outBuffer,outBufferSize);
-            env->ReleaseByteArrayElements(byteArray,byte,0);
-            env->CallIntMethod(player->audio_track_obj,player->audio_write_mid,byteArray,0,outBufferSize);
-//            fwrite(outBuffer,1,outBufferSize,out_file);
-            currentIndex++;
-            LOGE("当前音频解码到：%d",currentIndex);
-
-            //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
-            env->DeleteLocalRef(byteArray);
-
-            //睡眠一下
-            usleep(1000*16);
-        }
-    }
-    javaVM->DetachCurrentThread();
-    av_packet_free(&pkt);
-    fclose(out_file);
-    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
-    avformat_free_context(player->avFormatContext);
-    av_frame_free(&in_frame);
-    swr_free(&player->swrContext);
-}
-
-void audio_init_jni(JNIEnv *pEnv, SenPlayer *pPlayer);
 
 //目前默认返回零，改执行方法为成功的方法，才能继续进行下一步，-1为失败
 void init_input_format_comtx(SenPlayer *player ,const char *cFilePath){
@@ -521,7 +466,7 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     player->audioOutFilePath = cAudioOutFilePath;
     //1初始化封装格式上下文
     init_input_format_comtx(player,cFilePath);
-    LOGE("**********");
+    LOGE("**********12");
     if (player->code!=0){
         LOGE("%s",player->errorMsg);
         return;
