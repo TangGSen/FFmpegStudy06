@@ -45,7 +45,7 @@ public class ActivityPlay extends AppCompatActivity {
 //            videoPlayContrlor.render(filePath,surface);
 //            new VideoAudioPlay().videoAudio(filePath,audioOutFilePath,surface);
 //            new VideoAudioPlay().videoAudio(filePath,audioOutFilePath,surface);
-            new VideoAudioPlay().playSoundInThread(filePath,audioOutFilePath,surface);
+            new VideoAudioPlay().videoAudioPlayerV2(filePath,audioOutFilePath,surface);
 //            new AudioTest().playVideoSoundInThread(filePath,audioOutFilePath,surface);
             Log.e("sen","存在");
         }else{

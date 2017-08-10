@@ -14,7 +14,7 @@ extern "C" {
  */
 JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
   (JNIEnv *, jobject, jstring,jstring , jobject);
-JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_playSoundInThread
+JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
         (JNIEnv *, jobject, jstring, jstring, jobject);
 
 #ifdef __cplusplus

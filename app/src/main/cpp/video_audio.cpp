@@ -512,33 +512,24 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
 
 /**线程音频边解码边播放*/
 
-JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_playSoundInThread
-        (JNIEnv *env, jobject jobj,  jstring jfilepath, jstring jFileoutPath,jobject jSurface) {
+JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
+        (JNIEnv *env, jobject jobj,  jstring jfilepath, jstring audioOutFilePath,jobject jSurface) {
     SenPlayer *player = (SenPlayer *) malloc(sizeof(SenPlayer));
     env->GetJavaVM(&javaVM);
-    const char *cFileOutPath = env->GetStringUTFChars(jFileoutPath, NULL);
     const char *cFilePath = env->GetStringUTFChars(jfilepath, NULL);
-    player->audioOutFilePath = cFileOutPath;
-    av_register_all();
-
-    AVFormatContext *avFormatContext = avformat_alloc_context();
-
-    int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
-    player->avFormatContext =avFormatContext;
-    if (file_open_result != 0) {
-        LOGE("文件打开失败");
-
-        return;
-    }
-
-    if(avformat_find_stream_info(avFormatContext,NULL)<0){
-        LOGE("获取信息失败");
+    const char *cAudioOutFilePath = env->GetStringUTFChars(audioOutFilePath, NULL);
+    player->audioOutFilePath = cAudioOutFilePath;
+    //1初始化封装格式上下文
+    init_input_format_comtx(player,cFilePath);
+    LOGE("**********");
+    if (player->code!=0){
+        LOGE("%s",player->errorMsg);
         return;
     }
 
     int audio_index = -1;
-    for(int i = 0;i<avFormatContext->nb_streams;i++){
-        if (avFormatContext->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_AUDIO){
+    for(int i = 0;i<player->avFormatContext->nb_streams;i++){
+        if (player->avFormatContext->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_AUDIO){
             audio_index =i;
             player->audio_stream_index=i;
             break;
@@ -549,11 +540,11 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_playSoundInThread
         //没有音频流
         return;
     }
-    AVCodecParameters *codecpar = avFormatContext->streams[audio_index]->codecpar;
+    AVCodecParameters *codecpar = player->avFormatContext->streams[audio_index]->codecpar;
     //返回解码器
     AVCodec *avCodec = avcodec_find_decoder(codecpar->codec_id);
 //    AVCodecContext *avctx = avcodec_alloc_context3(avCodec); //这个无效？
-    AVCodecContext *avctx = avFormatContext->streams[audio_index]->codec;
+    AVCodecContext *avctx = player->avFormatContext->streams[audio_index]->codec;
     player->input_code_contx[AUDIO_IN_ARRAY_INDEX] =avctx;
     int code_result = avcodec_open2(avctx,avCodec,NULL);
     if(code_result!=0){
@@ -581,19 +572,7 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_playSoundInThread
     swr_init(swrContext);
     player->swrContext =swrContext;
     //缓冲区
-    /**
-     * 使用Java中AudioTrack 来播放
-     */
-    jclass  audioTestClass = env->GetObjectClass(jobj);
-    jmethodID  createAudioTrackId = env->GetMethodID(audioTestClass,"createAudioTrack","()Landroid/media/AudioTrack;");
-    jobject audio_track_obj = env->CallObjectMethod(jobj,createAudioTrackId);
-    jclass audio_track_class = env->GetObjectClass(audio_track_obj);
-    jmethodID audio_play_mid = env->GetMethodID(audio_track_class,"play","()V");
-
-    env->CallVoidMethod(audio_track_obj,audio_play_mid);
-    jmethodID audio_write_mid = env->GetMethodID(audio_track_class,"write","([BII)I");
-    player->audio_write_mid = audio_write_mid;
-    player->audio_track_obj = env->NewGlobalRef(audio_track_obj);
+    audio_init_jni(env, player,  jobj);
 
     pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
                    decodeAudioDataThreadRun,
