@@ -3,6 +3,7 @@ package sen.com.audio;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.view.Surface;
 
 /**
  * Created by Administrator on 2017/8/4.
@@ -19,6 +20,7 @@ public class AudioTest {
     public native void sound2(String filePath,String outFilePath) ;
     public native void playSound(String filePath,String outFilePath) ;
     public native void playSoundInThread(String filePath,String outFilePath) ;
+    public native void playVideoSoundInThread(String filePath, String outFilePath, Surface surface) ;
 
     //提供给ＪＮＩ　调用
     public AudioTrack createAudioTrack(){

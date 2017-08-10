@@ -66,6 +66,61 @@ struct SenPlayer{
 
 };
 
+
+void * playSoundInThread(void *arg){
+    JNIEnv *env;
+    javaVM->AttachCurrentThread(&env, NULL);
+    SenPlayer *player = (SenPlayer *) arg;
+    int outBufferSize =0;
+    int currentIndex = 0;
+    uint8_t *outBuffer = (uint8_t *)av_malloc(MAX_AUDIO_FRAME_SIZE);
+    FILE *out_file = fopen(player->audioOutFilePath,"wb+");
+    AVPacket *pkt = (AVPacket *) malloc(sizeof(AVPacket));
+    AVFrame *in_frame = av_frame_alloc();
+    while(av_read_frame(player->avFormatContext,pkt)>=0){
+        if (pkt->stream_index ==player->audio_stream_index){
+
+            int result = avcodec_send_packet(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],pkt);
+//
+            result= avcodec_receive_frame(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],in_frame);
+            if (result != 0) {
+                LOGE("解码失败...");
+                continue;
+            }
+            swr_convert(player->swrContext,&outBuffer,MAX_AUDIO_FRAME_SIZE,(const uint8_t **)in_frame->data,in_frame->nb_samples);
+            outBufferSize =av_samples_get_buffer_size(NULL,
+                                                      player->out_nb_chanels_size,
+                                                      in_frame->nb_samples,player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,1);
+            //由于AduidoTrack 需要的参数是三个，并且返回值是Int
+            //所以将outBuffer 自定义uint8 类型转成byte数据
+
+            jbyteArray byteArray=env->NewByteArray(outBufferSize);
+            //通过 *byte 指针来操作byteArray 里面数据
+            jbyte *byte = env->GetByteArrayElements(byteArray,NULL);
+            //赋值outBuffer --》byte
+            memcpy(byte,outBuffer,outBufferSize);
+            env->ReleaseByteArrayElements(byteArray,byte,0);
+            env->CallIntMethod(player->audio_track_obj,player->audio_write_mid,byteArray,0,outBufferSize);
+//            fwrite(outBuffer,1,outBufferSize,out_file);
+            currentIndex++;
+            LOGE("当前音频解码到：%d",currentIndex);
+
+            //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
+            env->DeleteLocalRef(byteArray);
+
+            //睡眠一下
+            usleep(1000*16);
+        }
+    }
+    javaVM->DetachCurrentThread();
+    av_packet_free(&pkt);
+    fclose(out_file);
+    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
+    avformat_free_context(player->avFormatContext);
+    av_frame_free(&in_frame);
+    swr_free(&player->swrContext);
+}
+
 void audio_init_jni(JNIEnv *pEnv, SenPlayer *pPlayer);
 
 //目前默认返回零，改执行方法为成功的方法，才能继续进行下一步，-1为失败
@@ -108,28 +163,54 @@ void findVideoAduioIndex(SenPlayer *player){
 
 }
 
-//3.
-void init_code_contx_open(SenPlayer *player,int stream_index,int index){
+////3.
+//void init_video_contx_open(SenPlayer *player, int stream_index, int index) {
+//    //5.查找音视频流的解码器
+//    //根据视频流获取编码的上下文
+//    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
+//    //返回解码器
+//    AVCodec *avCodec = avcodec_find_decoder(codecContext->codec_id);
+//    if (avCodec == NULL) {
+////        player->errorMsg="找不到对应的解码器";
+//        player->code=FAILD;
+//        return;
+//    }
+//    //6.打开解码器
+//    //zero on success, a negative value on error
+//    int open_codec_result = avcodec_open2(codecContext, avCodec, NULL);
+//    if (open_codec_result != 0) {
+////        player->errorMsg="打开解码器失败";
+//        player->code=FAILD;
+//        return;
+//    }
+//    player->input_code_contx[index]=codecContext;
+//    player->code=SUCCESS;
+//
+//}
+
+void init_code_contx_open(SenPlayer *player, int stream_index, int index) {
     //5.查找音视频流的解码器
     //根据视频流获取编码的上下文
-    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
+    AVCodecParameters *codecpar = player->avFormatContext->streams[stream_index]->codecpar;
     //返回解码器
+
+    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
     AVCodec *avCodec = avcodec_find_decoder(codecContext->codec_id);
     if (avCodec == NULL) {
 //        player->errorMsg="找不到对应的解码器";
-        player->code=FAILD;
+        player->code = FAILD;
         return;
     }
-    //6.打开解码器
-    //zero on success, a negative value on error
+//6.打开解码器
+//zero on success, a negative value on error
     int open_codec_result = avcodec_open2(codecContext, avCodec, NULL);
     if (open_codec_result != 0) {
 //        player->errorMsg="打开解码器失败";
-        player->code=FAILD;
+        player->code = FAILD;
         return;
     }
-    player->input_code_contx[index]=codecContext;
-    player->code=SUCCESS;
+    player->input_code_contx[index] = codecContext;
+    player->code = SUCCESS;
 
 }
 
@@ -246,59 +327,6 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
 }
 
 
-void * playSoundInThread(void *arg){
-    JNIEnv *env;
-    javaVM->AttachCurrentThread(&env, NULL);
-    SenPlayer *player = (SenPlayer *) arg;
-    int outBufferSize =0;
-    int currentIndex = 0;
-    uint8_t *outBuffer = (uint8_t *)av_malloc(MAX_AUDIO_FRAME_SIZE);
-    FILE *out_file = fopen(player->audioOutFilePath,"wb+");
-    AVPacket *pkt = (AVPacket *) malloc(sizeof(AVPacket));
-    AVFrame *in_frame = av_frame_alloc();
-    while(av_read_frame(player->avFormatContext,pkt)>=0){
-        if (pkt->stream_index ==player->audio_stream_index){
-
-            int result = avcodec_send_packet(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],pkt);
-            result= avcodec_receive_frame(player->input_code_contx[AUDIO_IN_ARRAY_INDEX],in_frame);
-            if (result != 0) {
-                LOGE("解码失败...");
-                continue;
-            }
-            usleep(1000*16);
-            swr_convert(player->swrContext,&outBuffer,MAX_AUDIO_FRAME_SIZE,(const uint8_t **)in_frame->data,in_frame->nb_samples);
-            outBufferSize =av_samples_get_buffer_size(in_frame->linesize,
-                                                      player->out_nb_chanels_size,
-                                                      in_frame->nb_samples,player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,1);
-            //由于AduidoTrack 需要的参数是三个，并且返回值是Int
-            //所以将outBuffer 自定义uint8 类型转成byte数据
-
-            jbyteArray byteArray=env->NewByteArray(outBufferSize);
-            //通过 *byte 指针来操作byteArray 里面数据
-            jbyte *byte = env->GetByteArrayElements(byteArray,NULL);
-            //赋值outBuffer --》byte
-            memcpy(byte,outBuffer,outBufferSize);
-            env->ReleaseByteArrayElements(byteArray,byte,0);
-            env->CallIntMethod(player->audio_track_obj,player->audio_write_mid,byteArray,0,outBufferSize);
-//            fwrite(outBuffer,1,outBufferSize,out_file);
-            currentIndex++;
-            LOGE("当前音频解码到：%d",currentIndex);
-
-            //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
-            env->DeleteLocalRef(byteArray);
-
-            //睡眠一下
-
-        }
-    }
-    javaVM->DetachCurrentThread();
-    av_packet_free(&pkt);
-    fclose(out_file);
-    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
-    avformat_free_context(player->avFormatContext);
-    av_frame_free(&in_frame);
-    swr_free(&player->swrContext);
-}
 
 
 /**解码子线程*/
@@ -471,7 +499,7 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
 //    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL, decodeVideoDataThreadRun,
 //                   (void *) player);
     pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
-                   playSoundInThread,
+                   decodeAudioDataThreadRun,
                    (void *) player);
 
 
@@ -479,4 +507,101 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
     //稀放
 
     // env->ReleaseStringUTFChars(jFilePath, cFilePath);
+}
+
+
+/**线程音频边解码边播放*/
+
+JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_playSoundInThread
+        (JNIEnv *env, jobject jobj,  jstring jfilepath, jstring jFileoutPath,jobject jSurface) {
+    SenPlayer *player = (SenPlayer *) malloc(sizeof(SenPlayer));
+    env->GetJavaVM(&javaVM);
+    const char *cFileOutPath = env->GetStringUTFChars(jFileoutPath, NULL);
+    const char *cFilePath = env->GetStringUTFChars(jfilepath, NULL);
+    player->audioOutFilePath = cFileOutPath;
+    av_register_all();
+
+    AVFormatContext *avFormatContext = avformat_alloc_context();
+
+    int file_open_result = avformat_open_input(&avFormatContext, cFilePath, NULL, NULL);
+    player->avFormatContext =avFormatContext;
+    if (file_open_result != 0) {
+        LOGE("文件打开失败");
+
+        return;
+    }
+
+    if(avformat_find_stream_info(avFormatContext,NULL)<0){
+        LOGE("获取信息失败");
+        return;
+    }
+
+    int audio_index = -1;
+    for(int i = 0;i<avFormatContext->nb_streams;i++){
+        if (avFormatContext->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_AUDIO){
+            audio_index =i;
+            player->audio_stream_index=i;
+            break;
+        }
+    }
+
+    if(audio_index==-1){
+        //没有音频流
+        return;
+    }
+    AVCodecParameters *codecpar = avFormatContext->streams[audio_index]->codecpar;
+    //返回解码器
+    AVCodec *avCodec = avcodec_find_decoder(codecpar->codec_id);
+//    AVCodecContext *avctx = avcodec_alloc_context3(avCodec); //这个无效？
+    AVCodecContext *avctx = avFormatContext->streams[audio_index]->codec;
+    player->input_code_contx[AUDIO_IN_ARRAY_INDEX] =avctx;
+    int code_result = avcodec_open2(avctx,avCodec,NULL);
+    if(code_result!=0){
+        LOGE("打开解码器失败");
+        return;
+    }
+    //上下文
+    SwrContext* swrContext = swr_alloc();
+    /**
+     * 参数一：上下文
+     * 2.输出声道布局，比如立体，环绕
+     * 3.输出音频格采样格式
+     */
+    int out_ch_layout = AV_CH_LAYOUT_STEREO;
+    AVSampleFormat out_sample_fmt =AV_SAMPLE_FMT_S16;
+    int in_ch_layout = av_get_default_channel_layout(avctx->channels);
+
+    //根据声道布局获取声道数量
+    int out_nb_chanels_size = av_get_channel_layout_nb_channels(out_ch_layout);
+    player->out_nb_chanels_size=out_nb_chanels_size;
+    swr_alloc_set_opts(swrContext,AV_CH_LAYOUT_STEREO,
+                       out_sample_fmt,avctx->sample_rate,in_ch_layout,
+                       avctx->sample_fmt,avctx->sample_rate,0,NULL);
+
+    swr_init(swrContext);
+    player->swrContext =swrContext;
+    //缓冲区
+    /**
+     * 使用Java中AudioTrack 来播放
+     */
+    jclass  audioTestClass = env->GetObjectClass(jobj);
+    jmethodID  createAudioTrackId = env->GetMethodID(audioTestClass,"createAudioTrack","()Landroid/media/AudioTrack;");
+    jobject audio_track_obj = env->CallObjectMethod(jobj,createAudioTrackId);
+    jclass audio_track_class = env->GetObjectClass(audio_track_obj);
+    jmethodID audio_play_mid = env->GetMethodID(audio_track_class,"play","()V");
+
+    env->CallVoidMethod(audio_track_obj,audio_play_mid);
+    jmethodID audio_write_mid = env->GetMethodID(audio_track_class,"write","([BII)I");
+    player->audio_write_mid = audio_write_mid;
+    player->audio_track_obj = env->NewGlobalRef(audio_track_obj);
+
+    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
+                   decodeAudioDataThreadRun,
+                   (void *) player);
+
+//    env->ReleaseStringUTFChars(jfilepath, cFilePath);
+//    env->ReleaseStringUTFChars(jFileoutPath, cFileOutPath);
+
+
+
 }

@@ -43,7 +43,10 @@ public class ActivityPlay extends AppCompatActivity {
             Surface surface = surfaceView.getHolder().getSurface();
             //surface 传入Nativie 用于绘制
 //            videoPlayContrlor.render(filePath,surface);
-            new VideoAudioPlay().videoAudio(filePath,audioOutFilePath,surface);
+//            new VideoAudioPlay().videoAudio(filePath,audioOutFilePath,surface);
+//            new VideoAudioPlay().videoAudio(filePath,audioOutFilePath,surface);
+            new VideoAudioPlay().playSoundInThread(filePath,audioOutFilePath,surface);
+//            new AudioTest().playVideoSoundInThread(filePath,audioOutFilePath,surface);
             Log.e("sen","存在");
         }else{
             Log.e("sen","不存在");
