@@ -5,6 +5,7 @@
 #include "android/native_window.h"
 #include "android/native_window_jni.h"
 #include "unistd.h"
+#include "vaqueue.h"
 
 extern "C" {
 
@@ -23,12 +24,12 @@ extern "C" {
 #define SUCCESS 0
 #define FAILD -1;
 #define MAX_STREAM_ARRAY 2
-#define VIDEO_IN_ARRAY_INDEX 0
-#define AUDIO_IN_ARRAY_INDEX 1
 #define LOG_TAG    "sen" // 这个是自定义的LOG的标识
 #define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG, __VA_ARGS__)
 //44100HZ 16bit =2个字节
 #define MAX_AUDIO_FRAME_SIZE 44100 * 2
+//队列的长度
+#define PACKET_QUEUE_SIZE 50
 JavaVM *javaVM;
 
 //定义一个结构体，用于封装一些参数（音视频共用的参数）
@@ -38,6 +39,8 @@ struct SenPlayer{
     //音视频流索引位置
     int audio_stream_index ;
     int video_stream_index;
+    //该视频流的总数，有几种流就有几种队列
+    int total_stream_num;
     //解码器数据
     AVCodecContext  *input_code_contx[MAX_STREAM_ARRAY];
     //视频转换的上下文
@@ -56,6 +59,8 @@ struct SenPlayer{
     ANativeWindow*  aNativeWindow;
     //解码线程数组id
     pthread_t deocde_thread_id[MAX_STREAM_ARRAY];
+
+    AVQueue *packet[MAX_STREAM_ARRAY];
 
     //生产者线程id
     pthread_t play_read_thread_id;
@@ -99,6 +104,8 @@ void init_input_format_comtx(SenPlayer *player ,const char *cFilePath){
 void findVideoAduioIndex(SenPlayer *player){
     AVFormatContext *avFormatContext =player->avFormatContext;
     int i = 0;
+    //流的总数
+    player->total_stream_num = avFormatContext->nb_streams;
     for (i; i < avFormatContext->nb_streams; i++) {
         if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             player->video_stream_index=i;
@@ -111,7 +118,7 @@ void findVideoAduioIndex(SenPlayer *player){
 }
 
 //查找音视频解码器并打开
-void init_code_contx_open(SenPlayer *player, int stream_index, int index) {
+void init_code_contx_open(SenPlayer *player, int stream_index) {
     //5.查找音视频流的解码器
     //根据视频流获取编码的上下文
     AVCodecParameters *codecpar = player->avFormatContext->streams[stream_index]->codecpar;
@@ -132,7 +139,7 @@ void init_code_contx_open(SenPlayer *player, int stream_index, int index) {
         player->code = FAILD;
         return;
     }
-    player->input_code_contx[index] = codecContext;
+    player->input_code_contx[stream_index] = codecContext;
     player->code = SUCCESS;
 
 }
@@ -140,7 +147,7 @@ void init_code_contx_open(SenPlayer *player, int stream_index, int index) {
 /**解码视频的*/
 void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer outBuffer,
                      AVFrame *in_frame_picture, AVFrame *out_frame_picture) {
-    AVCodecContext *codecContext = player->input_code_contx[VIDEO_IN_ARRAY_INDEX];
+    AVCodecContext *codecContext = player->input_code_contx[player->video_stream_index];
 //    新Api
     /**
      *   avcodec_send_packet() and avcodec_receive_frame()
@@ -191,7 +198,7 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
     AVFrame *in_frame = av_frame_alloc();
     uint8_t *audioOutBuffer = (uint8_t *) av_malloc(MAX_AUDIO_FRAME_SIZE);
     int result = -1;
-    AVCodecContext *avCodecContext = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
+    AVCodecContext *avCodecContext = player->input_code_contx[player->audio_stream_index];
 
     avcodec_send_packet(avCodecContext, pkt);
     result = avcodec_receive_frame(avCodecContext, in_frame);
@@ -212,7 +219,7 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
         //每次写这么多
         int outBufferSize = av_samples_get_buffer_size(NULL, player->out_nb_chanels_size,
                                                        in_frame->nb_samples,
-                                                       player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
+                                                       player->input_code_contx[player->audio_stream_index]->sample_fmt,
                                                        1);
 //        fwrite(audioOutBuffer,1,outBufferSize,outFile);
         //由于AduidoTrack 需要的参数是三个，并且返回值是Int
@@ -246,7 +253,7 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
 /**解码子线程*/
 void *decodeVideoDataThreadRun(void *args) {
     SenPlayer *player = (SenPlayer *) args;
-    AVCodecContext *codecContext =player->input_code_contx[VIDEO_IN_ARRAY_INDEX];
+    AVCodecContext *codecContext =player->input_code_contx[player->video_stream_index];
     //第七步，解码
     //从文件中读取一帧数据（压缩数据，一帧一帧得读）
     //这个是读取帧数缓存在这里，需要开辟空间
@@ -299,7 +306,7 @@ void *decodeVideoDataThreadRun(void *args) {
     sws_freeContext(player->swsContext);
     swr_free(&(player->swrContext));
     ANativeWindow_release(player->aNativeWindow);
-    avcodec_close(player->input_code_contx[VIDEO_IN_ARRAY_INDEX]);
+    avcodec_close(player->input_code_contx[player->video_stream_index]);
 //    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
 //    avformat_free_context(player->avFormatContext);
 //    free(player);
@@ -327,7 +334,7 @@ void *decodeAudioDataThreadRun(void *args) {
     javaVM->DetachCurrentThread();
     av_packet_free(&avPacket);
     swr_free(&(player->swrContext));
-    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
+    avcodec_close(player->input_code_contx[player->audio_stream_index]);
     return NULL;
 }
 
@@ -340,7 +347,7 @@ void decode_video_prepare(JNIEnv *env, jobject jSurface, SenPlayer *player) {
 
 
 void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
-    AVCodecContext *avctx = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
+    AVCodecContext *avctx = player->input_code_contx[player->audio_stream_index];
     //上下文
     SwrContext* swrContext = swr_alloc();
     /**
@@ -380,13 +387,41 @@ void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
     player->audio_track_obj = env->NewGlobalRef(audio_track_obj);
 }
 
+/**
+ * 初始化流的队列
+ */
+void play_mallco_queue(SenPlayer *player){
+    int i;
+    for (int i = 0; i < player->total_stream_num; ++i) {
+        if (i>=MAX_STREAM_ARRAY){
+            return;
+        }
+//        player->packet[i] = queue_init(PACKET_QUEUE_SIZE);
+    }
+}
+
 
 /**
  * 生成者线程执行的函数
  */
 void* player_read_from_stream(void* args){
     SenPlayer *player = (SenPlayer *) args;
+    /**
+     * 在栈内存上保存一个AVpacket,然后将指针保存到对列的数组里，当对列不用这个指针时，
+     * 这样好处是，用完就自动稀放，不需要手动稀放
+     * */
+    AVPacket packet,*avPacket =&packet;
 
+    int result ;
+    for(;;){
+        result = av_read_frame(player->avFormatContext,avPacket);
+        if (result<0){
+            //读完了
+            break;
+        }
+
+
+    }
 
 
 
@@ -413,23 +448,23 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
 
    findVideoAduioIndex(player);
 
-    init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
-    init_code_contx_open(player, player->video_stream_index, VIDEO_IN_ARRAY_INDEX);
+    init_code_contx_open(player,player->audio_stream_index);
+    init_code_contx_open(player, player->video_stream_index);
     //初始化jni 和音频重采样
     decode_audio_prepare(env, player, jobj);
     //初始化视频做准备
     decode_video_prepare(env, jSurface, player);
 
-//    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
-//                   decodeAudioDataThreadRun,
-//                   (void *) player);
-//    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL,
+    pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
+                   decodeAudioDataThreadRun,
+                   (void *) player);
+//    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
 //                   decodeVideoDataThreadRun,
 //                   (void *) player);
 
-    pthread_create(&(player->play_read_thread_id), NULL,
-                   player_read_from_stream,
-                   (void *) player);
+//    pthread_create(&(player->play_read_thread_id), NULL,
+//                   player_read_from_stream,
+//                   (void *) player);
 
 
 
