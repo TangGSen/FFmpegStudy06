@@ -60,7 +60,7 @@ struct SenPlayer{
     //解码线程数组id
     pthread_t deocde_thread_id[MAX_STREAM_ARRAY];
 
-    AVQueue *packet[MAX_STREAM_ARRAY];
+    AVQueue **packet[MAX_STREAM_ARRAY];
 
     //生产者线程id
     pthread_t play_read_thread_id;
@@ -74,6 +74,11 @@ struct SenPlayer{
     AVFrame *in_frame_picture;
     AVFrame *out_frame_picture;
     ANativeWindow_Buffer outBuffer;
+};
+//这个在子线程区分是那个线程过来的，
+struct DecodeData{
+    SenPlayer *player;
+    int stream_index;
 };
 
 
@@ -246,7 +251,9 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
 
 /**解码音视频子线程*/
 void *decodeDataThreadRun(void *args) {
-    SenPlayer *player = (SenPlayer *) args;
+    DecodeData *decodeData =(DecodeData *) args;
+    SenPlayer *player = decodeData->player;
+    int stream_index = decodeData->stream_index;
     JNIEnv *env;
     javaVM->AttachCurrentThread(&env, NULL);
 //第七步，解码
@@ -364,7 +371,7 @@ void play_mallco_queue(SenPlayer *player){
         if (i>=MAX_STREAM_ARRAY){
             return;
         }
-        player->packet[i] = queue_init(PACKET_QUEUE_SIZE);
+        player->packet[i] = (AVQueue **) queue_init(PACKET_QUEUE_SIZE);
     }
 }
 
@@ -388,7 +395,7 @@ void* player_read_from_stream(void* args){
             break;
         }
 
-        AVQueue* queue = player->packet[avPacket->stream_index];
+        AVQueue* queue = (AVQueue *) player->packet[avPacket->stream_index];
         AVPacket* packet_data = (AVPacket *) queue_push(queue);
         packet_data =avPacket;
     }
@@ -424,19 +431,27 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     decode_audio_prepare(env, player, jobj);
     //初始化视频做准备
     decode_video_prepare(env, jSurface, player);
-
+    //初始化队列
+    play_mallco_queue(player);
 
     //生产这线程
-    pthread_create(&(player->play_read_thread_id), NULL,
-                   player_read_from_stream,
-                   (void *) player);
+//    pthread_create(&(player->play_read_thread_id), NULL,
+//                   player_read_from_stream,
+//                   (void *) player);
     //消费者线程
+    DecodeData *audio = (DecodeData *) malloc(sizeof(DecodeData));
+    audio->player =player;
+    audio->stream_index= player->video_stream_index ;
+
+    DecodeData *video = (DecodeData *) malloc(sizeof(DecodeData));
+    video->player =player;
+    video->stream_index= player->video_stream_index ;
     pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
                    decodeDataThreadRun,
-                   (void *) player);
-    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
-                   decodeDataThreadRun,
-                   (void *) player);
+                   (void *) audio);
+//    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
+//                   decodeDataThreadRun,
+//                   (void *) video);
 
 
 
