@@ -70,7 +70,10 @@ struct SenPlayer{
     //错误码
     int code;
 
-
+    //视频
+    AVFrame *in_frame_picture;
+    AVFrame *out_frame_picture;
+    ANativeWindow_Buffer outBuffer;
 };
 
 
@@ -145,8 +148,7 @@ void init_code_contx_open(SenPlayer *player, int stream_index) {
 }
 
 /**解码视频的*/
-void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer outBuffer,
-                     AVFrame *in_frame_picture, AVFrame *out_frame_picture) {
+void decodeVideoData(SenPlayer *player, AVPacket *avPacket) {
     AVCodecContext *codecContext = player->input_code_contx[player->video_stream_index];
 //    新Api
     /**
@@ -156,7 +158,7 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer
      */
 
     int result = avcodec_send_packet(codecContext,avPacket);
-    result= avcodec_receive_frame(codecContext,in_frame_picture);
+    result= avcodec_receive_frame(codecContext,player->in_frame_picture);
     if (result != 0) {
         LOGE("解码失败...");
         return;
@@ -167,19 +169,19 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer
     //1.lock
     //设置缓冲区的大小
     ANativeWindow_setBuffersGeometry(player->aNativeWindow,codecContext->width,codecContext->width,WINDOW_FORMAT_RGBA_8888);
-    ANativeWindow_lock(player->aNativeWindow,&outBuffer,NULL);
+    ANativeWindow_lock(player->aNativeWindow,&(player->outBuffer),NULL);
     // render
     sws_scale(player->swsContext,
-              (const uint8_t *const *) in_frame_picture->data,
-              in_frame_picture->linesize, 0, codecContext->height,
-              out_frame_picture->data,
-              out_frame_picture->linesize
+              (const uint8_t *const *) player->in_frame_picture->data,
+              player->in_frame_picture->linesize, 0, codecContext->height,
+              player->out_frame_picture->data,
+              player->out_frame_picture->linesize
     );
     // 获取stride
-    uint8_t * dst = (uint8_t *) outBuffer.bits;
-    int dstStride = outBuffer.stride * 4;
-    uint8_t * src = (uint8_t*) (out_frame_picture->data[0]);
-    int srcStride = out_frame_picture->linesize[0];
+    uint8_t * dst = (uint8_t *) player->outBuffer.bits;
+    int dstStride = player->outBuffer.stride * 4;
+    uint8_t * src = (uint8_t*) (player->out_frame_picture->data[0]);
+    int srcStride = player->out_frame_picture->linesize[0];
 
     // 由于window的stride和帧的stride不同,因此需要逐行复制
     int h;
@@ -253,63 +255,27 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
 /**解码子线程*/
 void *decodeVideoDataThreadRun(void *args) {
     SenPlayer *player = (SenPlayer *) args;
-    AVCodecContext *codecContext =player->input_code_contx[player->video_stream_index];
-    //第七步，解码
+
+//第七步，解码
     //从文件中读取一帧数据（压缩数据，一帧一帧得读）
     //这个是读取帧数缓存在这里，需要开辟空间
     AVPacket *avPacket = (AVPacket *) av_malloc(sizeof(AVPacket));
-    //缓存一帧数据（一张图片）
-    AVFrame *in_frame_picture = av_frame_alloc();
-    /**以下几个参数为了SwsContext 做准备的*/
-    //定义输出一帧数据(缓冲区)
-    AVFrame *out_frame_picture = av_frame_alloc();
-
-    //指定缓冲区的类型
-    //开辟空间是YUV420p 的数据大小
-    //OldApi
-    // 参数4 字节对齐的方式 1（通用）
-    uint8_t *out_buffter = (uint8_t *) av_malloc(
-            av_image_get_buffer_size(AV_PIX_FMT_RGBA, codecContext->width, codecContext->height,1));
-    //指定填充数据
-    av_image_fill_arrays( out_frame_picture->data,out_frame_picture->linesize, out_buffter, AV_PIX_FMT_RGBA,
-                          codecContext->width, codecContext->height,1);
-
-
-
-
-    ANativeWindow_Buffer outBuffer ;
-
-    SwsContext *swsContext = sws_getContext(codecContext->width, codecContext->height,
-                                            codecContext->pix_fmt, codecContext->width,
-                                            codecContext->height, AV_PIX_FMT_RGBA,
-                                            SWS_BICUBIC, NULL, NULL, NULL
-
-    );
-    player->swsContext =swsContext;
-
 
     //循环读取每一帧
     while (av_read_frame(player->avFormatContext, avPacket) >= 0) {
         //只需要视频流
         if (avPacket->stream_index == player->video_stream_index) {
 
-            decodeVideoData(player, avPacket, outBuffer, in_frame_picture, out_frame_picture);
+            decodeVideoData(player, avPacket);
         }
     }
-//    fclose(audioOutFile);
-//    free(audioOutBuffer);
     av_packet_free(&avPacket);
-    av_frame_free(&in_frame_picture);
-    av_frame_free(&out_frame_picture);
-//    av_frame_free(&audio_in_frame);
-
+    av_frame_free(&player->in_frame_picture);
+    av_frame_free(&player->out_frame_picture);
     sws_freeContext(player->swsContext);
     swr_free(&(player->swrContext));
     ANativeWindow_release(player->aNativeWindow);
     avcodec_close(player->input_code_contx[player->video_stream_index]);
-//    avcodec_close(player->input_code_contx[AUDIO_IN_ARRAY_INDEX]);
-//    avformat_free_context(player->avFormatContext);
-//    free(player);
     return NULL;
 }
 
@@ -341,7 +307,36 @@ void *decodeAudioDataThreadRun(void *args) {
 //解码Video前进行初始化准备
 void decode_video_prepare(JNIEnv *env, jobject jSurface, SenPlayer *player) {
     //Android native绘制
-    player->aNativeWindow =ANativeWindow_fromSurface( env, jSurface);;
+    player->aNativeWindow =ANativeWindow_fromSurface( env, jSurface);
+
+    AVCodecContext *codecContext =player->input_code_contx[player->video_stream_index];
+
+    //缓存一帧数据（一张图片）
+    AVFrame *in_frame_picture = av_frame_alloc();
+    /**以下几个参数为了SwsContext 做准备的*/
+    //定义输出一帧数据(缓冲区)
+    AVFrame *out_frame_picture = av_frame_alloc();
+
+    //指定缓冲区的类型
+    //开辟空间是YUV420p 的数据大小
+    //OldApi
+    // 参数4 字节对齐的方式 1（通用）
+    uint8_t *out_buffter = (uint8_t *) av_malloc(
+            av_image_get_buffer_size(AV_PIX_FMT_RGBA, codecContext->width, codecContext->height,1));
+    //指定填充数据
+    av_image_fill_arrays( out_frame_picture->data,out_frame_picture->linesize, out_buffter, AV_PIX_FMT_RGBA,
+                          codecContext->width, codecContext->height,1);
+
+
+    SwsContext *swsContext = sws_getContext(codecContext->width, codecContext->height,
+                                            codecContext->pix_fmt, codecContext->width,
+                                            codecContext->height, AV_PIX_FMT_RGBA,
+                                            SWS_BICUBIC, NULL, NULL, NULL
+
+    );
+    player->swsContext =swsContext;
+    player->in_frame_picture=in_frame_picture ;
+    player->out_frame_picture=out_frame_picture ;
 
 }
 
@@ -396,7 +391,7 @@ void play_mallco_queue(SenPlayer *player){
         if (i>=MAX_STREAM_ARRAY){
             return;
         }
-//        player->packet[i] = queue_init(PACKET_QUEUE_SIZE);
+        player->packet[i] = queue_init(PACKET_QUEUE_SIZE);
     }
 }
 
@@ -420,7 +415,9 @@ void* player_read_from_stream(void* args){
             break;
         }
 
-
+        AVQueue* queue = player->packet[avPacket->stream_index];
+        AVPacket* packet_data = (AVPacket *) queue_push(queue);
+        packet_data =avPacket;
     }
 
 
@@ -440,7 +437,7 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     player->audioOutFilePath = cAudioOutFilePath;
     //1初始化封装格式上下文
     init_input_format_comtx(player,cFilePath);
-    LOGE("**********89");
+    LOGE("**********888");
     if (player->code!=0){
         LOGE("%s",player->errorMsg);
         return;
@@ -455,16 +452,18 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     //初始化视频做准备
     decode_video_prepare(env, jSurface, player);
 
-    pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
-                   decodeAudioDataThreadRun,
-                   (void *) player);
-//    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
-//                   decodeVideoDataThreadRun,
-//                   (void *) player);
 
+//    //生产这线程
 //    pthread_create(&(player->play_read_thread_id), NULL,
 //                   player_read_from_stream,
 //                   (void *) player);
+    //消费者线程
+//    pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
+//                   decodeAudioDataThreadRun,
+//                   (void *) player);
+    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
+                   decodeVideoDataThreadRun,
+                   (void *) player);
 
 
 

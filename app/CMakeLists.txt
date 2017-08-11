@@ -121,6 +121,7 @@ add_library( # Sets the name of the library.
              # file are automatically included.
              src/main/cpp/native-lib.cpp
              #src/main/cpp/audio.cpp
+             src/main/cpp/vaqueue.cpp
              src/main/cpp/video_audio.cpp
             )
 
