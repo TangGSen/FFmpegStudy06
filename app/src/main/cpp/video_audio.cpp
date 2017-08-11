@@ -205,10 +205,6 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer
     //unlock
     ANativeWindow_unlockAndPost(player->aNativeWindow);
 
-//    LOGE("Current frame_index：%d",frame_index++);
-
-
-
 }
 
 ////解码音频
