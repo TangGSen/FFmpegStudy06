@@ -6,7 +6,6 @@
 #include "android/native_window_jni.h"
 #include "unistd.h"
 
-
 extern "C" {
 
 //编解码库
@@ -58,6 +57,9 @@ struct SenPlayer{
     //解码线程数组id
     pthread_t deocde_thread_id[MAX_STREAM_ARRAY];
 
+    //生产者线程id
+    pthread_t play_read_thread_id;
+
     //错误信息
     char* errorMsg;
     //错误码
@@ -108,31 +110,7 @@ void findVideoAduioIndex(SenPlayer *player){
 
 }
 
-////3.
-//void init_video_contx_open(SenPlayer *player, int stream_index, int index) {
-//    //5.查找音视频流的解码器
-//    //根据视频流获取编码的上下文
-//    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
-//    //返回解码器
-//    AVCodec *avCodec = avcodec_find_decoder(codecContext->codec_id);
-//    if (avCodec == NULL) {
-////        player->errorMsg="找不到对应的解码器";
-//        player->code=FAILD;
-//        return;
-//    }
-//    //6.打开解码器
-//    //zero on success, a negative value on error
-//    int open_codec_result = avcodec_open2(codecContext, avCodec, NULL);
-//    if (open_codec_result != 0) {
-////        player->errorMsg="打开解码器失败";
-//        player->code=FAILD;
-//        return;
-//    }
-//    player->input_code_contx[index]=codecContext;
-//    player->code=SUCCESS;
-//
-//}
-
+//查找音视频解码器并打开
 void init_code_contx_open(SenPlayer *player, int stream_index, int index) {
     //5.查找音视频流的解码器
     //根据视频流获取编码的上下文
@@ -236,11 +214,6 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
                                                        in_frame->nb_samples,
                                                        player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
                                                        1);
-//        int outBufferSize = av_samples_get_buffer_size(in_frame->linesize,
-//                                                       player->out_nb_chanels_size,
-//                                                       in_frame->nb_samples,
-//                                                       player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
-//                                                       1);
 //        fwrite(audioOutBuffer,1,outBufferSize,outFile);
         //由于AduidoTrack 需要的参数是三个，并且返回值是Int
         //所以将outBuffer 自定义uint8 类型转成byte数据
@@ -408,6 +381,19 @@ void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
 }
 
 
+/**
+ * 生成者线程执行的函数
+ */
+void* player_read_from_stream(void* args){
+    SenPlayer *player = (SenPlayer *) args;
+
+
+
+
+
+    return NULL;
+}
+
 /**线程音频边解码边播放*/
 
 JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
@@ -437,9 +423,17 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
 //    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
 //                   decodeAudioDataThreadRun,
 //                   (void *) player);
-    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL,
-                   decodeVideoDataThreadRun,
+//    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL,
+//                   decodeVideoDataThreadRun,
+//                   (void *) player);
+
+    pthread_create(&(player->play_read_thread_id), NULL,
+                   player_read_from_stream,
                    (void *) player);
+
+
+
+
 
 //    env->ReleaseStringUTFChars(jfilepath, cFilePath);
 //    env->ReleaseStringUTFChars(jFileoutPath, cFileOutPath);

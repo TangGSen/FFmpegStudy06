@@ -1,10 +1,10 @@
 #include "video_audio_play.h"
 #include <string>
-#include <unistd.h>
 #include "android/log.h"
 //原生绘制的头文件
 #include "android/native_window.h"
 #include "android/native_window_jni.h"
+#include "unistd.h"
 
 
 extern "C" {
@@ -66,7 +66,7 @@ struct SenPlayer{
 
 };
 
-void audio_init_jni(JNIEnv *pEnv, SenPlayer *pPlayer);
+
 
 //目前默认返回零，改执行方法为成功的方法，才能继续进行下一步，-1为失败
 void init_input_format_comtx(SenPlayer *player ,const char *cFilePath){
@@ -108,28 +108,54 @@ void findVideoAduioIndex(SenPlayer *player){
 
 }
 
-//3.
-void init_code_contx_open(SenPlayer *player,int stream_index,int index){
+////3.
+//void init_video_contx_open(SenPlayer *player, int stream_index, int index) {
+//    //5.查找音视频流的解码器
+//    //根据视频流获取编码的上下文
+//    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
+//    //返回解码器
+//    AVCodec *avCodec = avcodec_find_decoder(codecContext->codec_id);
+//    if (avCodec == NULL) {
+////        player->errorMsg="找不到对应的解码器";
+//        player->code=FAILD;
+//        return;
+//    }
+//    //6.打开解码器
+//    //zero on success, a negative value on error
+//    int open_codec_result = avcodec_open2(codecContext, avCodec, NULL);
+//    if (open_codec_result != 0) {
+////        player->errorMsg="打开解码器失败";
+//        player->code=FAILD;
+//        return;
+//    }
+//    player->input_code_contx[index]=codecContext;
+//    player->code=SUCCESS;
+//
+//}
+
+void init_code_contx_open(SenPlayer *player, int stream_index, int index) {
     //5.查找音视频流的解码器
     //根据视频流获取编码的上下文
-    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
+    AVCodecParameters *codecpar = player->avFormatContext->streams[stream_index]->codecpar;
     //返回解码器
+
+    AVCodecContext *codecContext = player->avFormatContext->streams[stream_index]->codec;
     AVCodec *avCodec = avcodec_find_decoder(codecContext->codec_id);
     if (avCodec == NULL) {
 //        player->errorMsg="找不到对应的解码器";
-        player->code=FAILD;
+        player->code = FAILD;
         return;
     }
-    //6.打开解码器
-    //zero on success, a negative value on error
+//6.打开解码器
+//zero on success, a negative value on error
     int open_codec_result = avcodec_open2(codecContext, avCodec, NULL);
     if (open_codec_result != 0) {
 //        player->errorMsg="打开解码器失败";
-        player->code=FAILD;
+        player->code = FAILD;
         return;
     }
-    player->input_code_contx[index]=codecContext;
-    player->code=SUCCESS;
+    player->input_code_contx[index] = codecContext;
+    player->code = SUCCESS;
 
 }
 
@@ -179,10 +205,6 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket, ANativeWindow_Buffer
     //unlock
     ANativeWindow_unlockAndPost(player->aNativeWindow);
 
-//    LOGE("Current frame_index：%d",frame_index++);
-
-
-
 }
 
 ////解码音频
@@ -214,30 +236,38 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
                                                        in_frame->nb_samples,
                                                        player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
                                                        1);
-        fwrite(audioOutBuffer,1,outBufferSize,outFile);
+//        int outBufferSize = av_samples_get_buffer_size(in_frame->linesize,
+//                                                       player->out_nb_chanels_size,
+//                                                       in_frame->nb_samples,
+//                                                       player->input_code_contx[AUDIO_IN_ARRAY_INDEX]->sample_fmt,
+//                                                       1);
+//        fwrite(audioOutBuffer,1,outBufferSize,outFile);
         //由于AduidoTrack 需要的参数是三个，并且返回值是Int
         //所以将outBuffer 自定义uint8 类型转成byte数据
 
-//        jbyteArray byteArray = env->NewByteArray(outBufferSize);
-//        //通过 *byte 指针来操作byteArray 里面数据
-//        jbyte *byte = env->GetByteArrayElements(byteArray, NULL);
-//        //赋值outBuffer --》byte
-//        memcpy(byte, audioOutBuffer, outBufferSize);
-//        env->ReleaseByteArrayElements(byteArray, byte, 0);
-//        env->CallIntMethod(player->audio_track_obj, player->audio_write_mid, byteArray, 0,
-//                           outBufferSize);
-////            fwrite(outBuffer,1,outBufferSize,out_file);
+        jbyteArray byteArray = env->NewByteArray(outBufferSize);
+        //通过 *byte 指针来操作byteArray 里面数据
+        jbyte *byte = env->GetByteArrayElements(byteArray, NULL);
+        //赋值outBuffer --》byte
+        memcpy(byte, audioOutBuffer, outBufferSize);
+        env->ReleaseByteArrayElements(byteArray, byte, 0);
+        env->CallIntMethod(player->audio_track_obj, player->audio_write_mid, byteArray, 0,
+                           outBufferSize);
+//            fwrite(outBuffer,1,outBufferSize,out_file);
+
+        //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
+        env->DeleteLocalRef(byteArray);
 //
-//        //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
-//        env->DeleteLocalRef(byteArray);
-////
-////        //睡眠一下
+//        //睡眠一下
 //        sleep(1);
+        usleep(1000*16);
     }
     free(audioOutBuffer);
     av_frame_free(&in_frame);
 
 }
+
+
 
 
 /**解码子线程*/
@@ -328,46 +358,42 @@ void *decodeAudioDataThreadRun(void *args) {
     return NULL;
 }
 
-//解码前进行初始化AndroidWindons
-void decode_window_prepare(JNIEnv *env,jobject jSurface,SenPlayer *player){
+//解码Video前进行初始化准备
+void decode_video_prepare(JNIEnv *env, jobject jSurface, SenPlayer *player) {
     //Android native绘制
     player->aNativeWindow =ANativeWindow_fromSurface( env, jSurface);;
 
 }
 
 
-void docdde_audio_prepare(JNIEnv *player, SenPlayer *pPlayer, jobject pJobject) {
-    AVCodecContext *avCodecContext = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
-    SwrContext *swrContext = swr_alloc();
-    //重采样设置参数
+void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
+    AVCodecContext *avctx = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
+    //上下文
+    SwrContext* swrContext = swr_alloc();
+    /**
+     * 初始化音频重采样
+     * 参数一：上下文
+     * 2.输出声道布局，比如立体，环绕
+     * 3.输出音频格采样格式
+     */
+    int out_ch_layout = AV_CH_LAYOUT_STEREO;
+    AVSampleFormat out_sample_fmt =AV_SAMPLE_FMT_S16;
+    int in_ch_layout = av_get_default_channel_layout(avctx->channels);
 
-    enum AVSampleFormat out_sample_fmt = avCodecContext->sample_fmt;
-    enum AVSampleFormat in_sample_fmt = AV_SAMPLE_FMT_S16;
-    int in_sample_rate = avCodecContext->sample_rate;
-    int out_sample_rate = avCodecContext->sample_rate;
-    int log_offset = 0;
-
-    //根据声道个数获取默认的声道布局，默认是立体声strero
-//    int64_t  in_ch_layout = av_get_default_channel_layout(avCodecContext->channels);
-    int64_t in_ch_layout = avCodecContext->channel_layout;
-    int64_t out_ch_layout = AV_CH_LAYOUT_STEREO;//立体声
-
-    //获取输入输出的声道个数
+    //根据声道布局获取声道数量
     int out_nb_chanels_size = av_get_channel_layout_nb_channels(out_ch_layout);
+    player->out_nb_chanels_size=out_nb_chanels_size;
+    swr_alloc_set_opts(swrContext,AV_CH_LAYOUT_STEREO,
+                       out_sample_fmt,avctx->sample_rate,in_ch_layout,
+                       avctx->sample_fmt,avctx->sample_rate,0,NULL);
 
-    swr_alloc_set_opts(swrContext,
-                       out_ch_layout, out_sample_fmt, out_sample_rate,
-                       in_ch_layout, in_sample_fmt, in_sample_rate,
-                       log_offset, NULL);
     swr_init(swrContext);
     player->swrContext = swrContext;
     player->out_nb_chanels_size = out_nb_chanels_size;
-}
 
-void audio_init_jni(JNIEnv *env, SenPlayer *player, jobject jobj) {
     /**
- * 使用Java中AudioTrack 来播放
- */
+       *    初始化jni 使用Java中AudioTrack 来播放
+        */
     jclass audioTestClass = env->GetObjectClass(jobj);
     jmethodID createAudioTrackId = env->GetMethodID(audioTestClass, "createAudioTrack",
                                                     "()Landroid/media/AudioTrack;");
@@ -381,41 +407,43 @@ void audio_init_jni(JNIEnv *env, SenPlayer *player, jobject jobj) {
     player->audio_track_obj = env->NewGlobalRef(audio_track_obj);
 }
 
-void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
-        (JNIEnv *env, jobject jObj, jstring jFilePath, jstring audioOutFilePath, jobject jSurface) {
-    env->GetJavaVM(&javaVM);
-    const char *cFilePath = env->GetStringUTFChars(jFilePath, NULL);
-    const char *cAudioOutFilePath = env->GetStringUTFChars(audioOutFilePath, NULL);
+
+/**线程音频边解码边播放*/
+
+JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
+        (JNIEnv *env, jobject jobj,  jstring jfilepath, jstring audioOutFilePath,jobject jSurface) {
     SenPlayer *player = (SenPlayer *) malloc(sizeof(SenPlayer));
+    env->GetJavaVM(&javaVM);
+    const char *cFilePath = env->GetStringUTFChars(jfilepath, NULL);
+    const char *cAudioOutFilePath = env->GetStringUTFChars(audioOutFilePath, NULL);
     player->audioOutFilePath = cAudioOutFilePath;
     //1初始化封装格式上下文
     init_input_format_comtx(player,cFilePath);
+    LOGE("**********89");
     if (player->code!=0){
         LOGE("%s",player->errorMsg);
         return;
     }
-    // 2.遍历查找的音视频流的索引位置
-    findVideoAduioIndex(player);
-    //打开找到视频的解密器并打开
-    //如果那个返回成功，就解码那个，因为有些Mp3,有些事音频的
-    //将视频的AVCodeConotex 放在数组的第一位
-    init_code_contx_open(player,player->video_stream_index,0);
-    init_code_contx_open(player,player->audio_stream_index,1);
-    //初始化安卓
-    decode_window_prepare(env,jSurface,player);
-    docdde_audio_prepare(player, NULL, NULL);
 
-    audio_init_jni(env, player, jObj);
-    //开线程去解码
-//    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL, decodeVideoDataThreadRun,
+   findVideoAduioIndex(player);
+
+    init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
+    init_code_contx_open(player, player->video_stream_index, VIDEO_IN_ARRAY_INDEX);
+    //初始化jni 和音频重采样
+    decode_audio_prepare(env, player, jobj);
+    //初始化视频做准备
+    decode_video_prepare(env, jSurface, player);
+
+//    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
+//                   decodeAudioDataThreadRun,
 //                   (void *) player);
-    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
-                   decodeAudioDataThreadRun,
+    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL,
+                   decodeVideoDataThreadRun,
                    (void *) player);
 
+//    env->ReleaseStringUTFChars(jfilepath, cFilePath);
+//    env->ReleaseStringUTFChars(jFileoutPath, cFileOutPath);
 
 
-    //稀放
 
-    // env->ReleaseStringUTFChars(jFilePath, cFilePath);
 }
