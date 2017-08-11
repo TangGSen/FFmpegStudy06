@@ -336,7 +336,7 @@ void decode_window_prepare(JNIEnv *env,jobject jSurface,SenPlayer *player){
 }
 
 
-void docdde_audio_prepare(SenPlayer *player) {
+void docdde_audio_prepare(JNIEnv *player, SenPlayer *pPlayer, jobject pJobject) {
     AVCodecContext *avCodecContext = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
     SwrContext *swrContext = swr_alloc();
     //重采样设置参数
@@ -403,7 +403,7 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
     init_code_contx_open(player,player->audio_stream_index,1);
     //初始化安卓
     decode_window_prepare(env,jSurface,player);
-    docdde_audio_prepare(player);
+    docdde_audio_prepare(player, NULL, NULL);
 
     audio_init_jni(env, player, jObj);
     //开线程去解码

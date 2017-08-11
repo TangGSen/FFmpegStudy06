@@ -370,38 +370,34 @@ void decode_window_prepare(JNIEnv *env,jobject jSurface,SenPlayer *player){
 }
 
 
-void docdde_audio_prepare(SenPlayer *player) {
-    AVCodecContext *avCodecContext = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
-    SwrContext *swrContext = swr_alloc();
-    //重采样设置参数
+void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
+    AVCodecContext *avctx = player->input_code_contx[AUDIO_IN_ARRAY_INDEX];
+    //上下文
+    SwrContext* swrContext = swr_alloc();
+    /**
+     * 初始化音频重采样
+     * 参数一：上下文
+     * 2.输出声道布局，比如立体，环绕
+     * 3.输出音频格采样格式
+     */
+    int out_ch_layout = AV_CH_LAYOUT_STEREO;
+    AVSampleFormat out_sample_fmt =AV_SAMPLE_FMT_S16;
+    int in_ch_layout = av_get_default_channel_layout(avctx->channels);
 
-    enum AVSampleFormat out_sample_fmt = avCodecContext->sample_fmt;
-    enum AVSampleFormat in_sample_fmt = AV_SAMPLE_FMT_S16;
-    int in_sample_rate = avCodecContext->sample_rate;
-    int out_sample_rate = avCodecContext->sample_rate;
-    int log_offset = 0;
-
-    //根据声道个数获取默认的声道布局，默认是立体声strero
-//    int64_t  in_ch_layout = av_get_default_channel_layout(avCodecContext->channels);
-    int64_t in_ch_layout = avCodecContext->channel_layout;
-    int64_t out_ch_layout = AV_CH_LAYOUT_STEREO;//立体声
-
-    //获取输入输出的声道个数
+    //根据声道布局获取声道数量
     int out_nb_chanels_size = av_get_channel_layout_nb_channels(out_ch_layout);
+    player->out_nb_chanels_size=out_nb_chanels_size;
+    swr_alloc_set_opts(swrContext,AV_CH_LAYOUT_STEREO,
+                       out_sample_fmt,avctx->sample_rate,in_ch_layout,
+                       avctx->sample_fmt,avctx->sample_rate,0,NULL);
 
-    swr_alloc_set_opts(swrContext,
-                       out_ch_layout, out_sample_fmt, out_sample_rate,
-                       in_ch_layout, in_sample_fmt, in_sample_rate,
-                       log_offset, NULL);
     swr_init(swrContext);
     player->swrContext = swrContext;
     player->out_nb_chanels_size = out_nb_chanels_size;
-}
 
-void audio_init_jni(JNIEnv *env, SenPlayer *player, jobject jobj) {
     /**
- * 使用Java中AudioTrack 来播放
- */
+       *    初始化jni 使用Java中AudioTrack 来播放
+        */
     jclass audioTestClass = env->GetObjectClass(jobj);
     jmethodID createAudioTrackId = env->GetMethodID(audioTestClass, "createAudioTrack",
                                                     "()Landroid/media/AudioTrack;");
@@ -414,6 +410,7 @@ void audio_init_jni(JNIEnv *env, SenPlayer *player, jobject jobj) {
     player->audio_write_mid = audio_write_mid;
     player->audio_track_obj = env->NewGlobalRef(audio_track_obj);
 }
+
 
 void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
         (JNIEnv *env, jobject jObj, jstring jFilePath, jstring audioOutFilePath, jobject jSurface) {
@@ -437,9 +434,10 @@ void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
     init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
     //初始化安卓
     decode_window_prepare(env,jSurface,player);
-    docdde_audio_prepare(player);
+//    docdde_audio_prepare(player, NULL, NULL);
 
-    audio_init_jni(env, player, jObj);
+
+//    audio_init_jni(env, player, jObj);
     //开线程去解码
 //    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL, decodeVideoDataThreadRun,
 //                   (void *) player);
@@ -466,58 +464,18 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     player->audioOutFilePath = cAudioOutFilePath;
     //1初始化封装格式上下文
     init_input_format_comtx(player,cFilePath);
-    LOGE("**********12");
+    LOGE("**********122335");
     if (player->code!=0){
         LOGE("%s",player->errorMsg);
         return;
     }
 
-    int audio_index = -1;
-    for(int i = 0;i<player->avFormatContext->nb_streams;i++){
-        if (player->avFormatContext->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_AUDIO){
-            audio_index =i;
-            player->audio_stream_index=i;
-            break;
-        }
-    }
+   findVideoAduioIndex(player);
 
-    if(audio_index==-1){
-        //没有音频流
-        return;
-    }
-    AVCodecParameters *codecpar = player->avFormatContext->streams[audio_index]->codecpar;
-    //返回解码器
-    AVCodec *avCodec = avcodec_find_decoder(codecpar->codec_id);
-//    AVCodecContext *avctx = avcodec_alloc_context3(avCodec); //这个无效？
-    AVCodecContext *avctx = player->avFormatContext->streams[audio_index]->codec;
-    player->input_code_contx[AUDIO_IN_ARRAY_INDEX] =avctx;
-    int code_result = avcodec_open2(avctx,avCodec,NULL);
-    if(code_result!=0){
-        LOGE("打开解码器失败");
-        return;
-    }
-    //上下文
-    SwrContext* swrContext = swr_alloc();
-    /**
-     * 参数一：上下文
-     * 2.输出声道布局，比如立体，环绕
-     * 3.输出音频格采样格式
-     */
-    int out_ch_layout = AV_CH_LAYOUT_STEREO;
-    AVSampleFormat out_sample_fmt =AV_SAMPLE_FMT_S16;
-    int in_ch_layout = av_get_default_channel_layout(avctx->channels);
+    init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
+    //初始化jni 和音频重采样
+    decode_audio_prepare(env, player, jobj);
 
-    //根据声道布局获取声道数量
-    int out_nb_chanels_size = av_get_channel_layout_nb_channels(out_ch_layout);
-    player->out_nb_chanels_size=out_nb_chanels_size;
-    swr_alloc_set_opts(swrContext,AV_CH_LAYOUT_STEREO,
-                       out_sample_fmt,avctx->sample_rate,in_ch_layout,
-                       avctx->sample_fmt,avctx->sample_rate,0,NULL);
-
-    swr_init(swrContext);
-    player->swrContext =swrContext;
-    //缓冲区
-    audio_init_jni(env, player,  jobj);
 
     pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
                    decodeAudioDataThreadRun,
