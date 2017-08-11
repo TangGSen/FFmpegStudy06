@@ -362,8 +362,8 @@ void *decodeAudioDataThreadRun(void *args) {
     return NULL;
 }
 
-//解码前进行初始化AndroidWindons
-void decode_window_prepare(JNIEnv *env,jobject jSurface,SenPlayer *player){
+//解码Video前进行初始化准备
+void decode_video_prepare(JNIEnv *env, jobject jSurface, SenPlayer *player) {
     //Android native绘制
     player->aNativeWindow =ANativeWindow_fromSurface( env, jSurface);;
 
@@ -412,47 +412,6 @@ void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
 }
 
 
-void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
-        (JNIEnv *env, jobject jObj, jstring jFilePath, jstring audioOutFilePath, jobject jSurface) {
-    env->GetJavaVM(&javaVM);
-    const char *cFilePath = env->GetStringUTFChars(jFilePath, NULL);
-    const char *cAudioOutFilePath = env->GetStringUTFChars(audioOutFilePath, NULL);
-    SenPlayer *player = (SenPlayer *) malloc(sizeof(SenPlayer));
-    player->audioOutFilePath = cAudioOutFilePath;
-    //1初始化封装格式上下文
-    init_input_format_comtx(player,cFilePath);
-    if (player->code!=0){
-        LOGE("%s",player->errorMsg);
-        return;
-    }
-    // 2.遍历查找的音视频流的索引位置
-    findVideoAduioIndex(player);
-    //打开找到视频的解密器并打开
-    //如果那个返回成功，就解码那个，因为有些Mp3,有些事音频的
-    //将视频的AVCodeConotex 放在数组的第一位
-    init_code_contx_open(player,player->video_stream_index,VIDEO_IN_ARRAY_INDEX);
-    init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
-    //初始化安卓
-    decode_window_prepare(env,jSurface,player);
-//    docdde_audio_prepare(player, NULL, NULL);
-
-
-//    audio_init_jni(env, player, jObj);
-    //开线程去解码
-//    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL, decodeVideoDataThreadRun,
-//                   (void *) player);
-    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
-                   decodeAudioDataThreadRun,
-                   (void *) player);
-
-
-
-    //稀放
-
-    // env->ReleaseStringUTFChars(jFilePath, cFilePath);
-}
-
-
 /**线程音频边解码边播放*/
 
 JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
@@ -464,7 +423,7 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     player->audioOutFilePath = cAudioOutFilePath;
     //1初始化封装格式上下文
     init_input_format_comtx(player,cFilePath);
-    LOGE("**********122335");
+    LOGE("**********89");
     if (player->code!=0){
         LOGE("%s",player->errorMsg);
         return;
@@ -473,12 +432,17 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
    findVideoAduioIndex(player);
 
     init_code_contx_open(player,player->audio_stream_index,AUDIO_IN_ARRAY_INDEX);
+    init_code_contx_open(player, player->video_stream_index, VIDEO_IN_ARRAY_INDEX);
     //初始化jni 和音频重采样
     decode_audio_prepare(env, player, jobj);
+    //初始化视频做准备
+    decode_video_prepare(env, jSurface, player);
 
-
-    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
-                   decodeAudioDataThreadRun,
+//    pthread_create(&(player->deocde_thread_id[AUDIO_IN_ARRAY_INDEX]), NULL,
+//                   decodeAudioDataThreadRun,
+//                   (void *) player);
+    pthread_create(&(player->deocde_thread_id[VIDEO_IN_ARRAY_INDEX]), NULL,
+                   decodeVideoDataThreadRun,
                    (void *) player);
 
 //    env->ReleaseStringUTFChars(jfilepath, cFilePath);

@@ -14,7 +14,6 @@ public class VideoAudioPlay {
         System.loadLibrary("native-lib");
     }
     //多线程 音视频同步
-    public native void videoAudio(String filePath,String audioOutFilePath, Surface surface);
     public native void videoAudioPlayerV2(String filePath,String audioOutFilePath, Surface surface);
 
     //提供给ＪＮＩ　调用

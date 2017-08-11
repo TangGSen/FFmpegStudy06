@@ -12,10 +12,13 @@ extern "C" {
  * Method:    videoAudio
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudio
-  (JNIEnv *, jobject, jstring,jstring , jobject);
+
 JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
         (JNIEnv *, jobject, jstring, jstring, jobject);
+
+
+
+//解码Video前进行初始化准备
 
 #ifdef __cplusplus
 }
