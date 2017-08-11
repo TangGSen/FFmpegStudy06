@@ -196,7 +196,7 @@ void decodeVideoData(SenPlayer *player, AVPacket *avPacket) {
 
 ////解码音频
 void docodeAudioData(SenPlayer *player, AVPacket *pkt,
-                     JNIEnv *env,FILE *outFile) {
+                     JNIEnv *env) {
     AVFrame *in_frame = av_frame_alloc();
     uint8_t *audioOutBuffer = (uint8_t *) av_malloc(MAX_AUDIO_FRAME_SIZE);
     int result = -1;
@@ -223,10 +223,8 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
                                                        in_frame->nb_samples,
                                                        player->input_code_contx[player->audio_stream_index]->sample_fmt,
                                                        1);
-//        fwrite(audioOutBuffer,1,outBufferSize,outFile);
         //由于AduidoTrack 需要的参数是三个，并且返回值是Int
         //所以将outBuffer 自定义uint8 类型转成byte数据
-
         jbyteArray byteArray = env->NewByteArray(outBufferSize);
         //通过 *byte 指针来操作byteArray 里面数据
         jbyte *byte = env->GetByteArrayElements(byteArray, NULL);
@@ -235,14 +233,8 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
         env->ReleaseByteArrayElements(byteArray, byte, 0);
         env->CallIntMethod(player->audio_track_obj, player->audio_write_mid, byteArray, 0,
                            outBufferSize);
-//            fwrite(outBuffer,1,outBufferSize,out_file);
-
         //需要释放局部变量，防止溢出（在for循环里创建对象需要释放）
         env->DeleteLocalRef(byteArray);
-//
-//        //睡眠一下
-//        sleep(1);
-        usleep(1000*16);
     }
     free(audioOutBuffer);
     av_frame_free(&in_frame);
@@ -252,10 +244,11 @@ void docodeAudioData(SenPlayer *player, AVPacket *pkt,
 
 
 
-/**解码子线程*/
-void *decodeVideoDataThreadRun(void *args) {
+/**解码音视频子线程*/
+void *decodeDataThreadRun(void *args) {
     SenPlayer *player = (SenPlayer *) args;
-
+    JNIEnv *env;
+    javaVM->AttachCurrentThread(&env, NULL);
 //第七步，解码
     //从文件中读取一帧数据（压缩数据，一帧一帧得读）
     //这个是读取帧数缓存在这里，需要开辟空间
@@ -265,44 +258,24 @@ void *decodeVideoDataThreadRun(void *args) {
     while (av_read_frame(player->avFormatContext, avPacket) >= 0) {
         //只需要视频流
         if (avPacket->stream_index == player->video_stream_index) {
-
             decodeVideoData(player, avPacket);
+        }else if(avPacket->stream_index == player->audio_stream_index){
+            docodeAudioData(player, avPacket, env);
         }
     }
+    javaVM->DetachCurrentThread();
     av_packet_free(&avPacket);
     av_frame_free(&player->in_frame_picture);
     av_frame_free(&player->out_frame_picture);
     sws_freeContext(player->swsContext);
     swr_free(&(player->swrContext));
     ANativeWindow_release(player->aNativeWindow);
+    swr_free(&(player->swrContext));
+    avcodec_close(player->input_code_contx[player->audio_stream_index]);
     avcodec_close(player->input_code_contx[player->video_stream_index]);
     return NULL;
 }
 
-void *decodeAudioDataThreadRun(void *args) {
-    JNIEnv *env;
-    javaVM->AttachCurrentThread(&env, NULL);
-    SenPlayer *player = (SenPlayer *) args;
-    //这个是读取帧数缓存在这里，需要开辟空间
-    AVPacket *avPacket = (AVPacket *) av_malloc(sizeof(AVPacket));
-
-
-    FILE *out_file = fopen(player->audioOutFilePath,"wb+");
-    int current = 0;
-    //循环读取每一帧
-    while (av_read_frame(player->avFormatContext, avPacket) >= 0) {
-        if (avPacket->stream_index == player->audio_stream_index) {
-            current++;
-            LOGE("当前%d",current);
-            docodeAudioData(player, avPacket,  env,out_file);
-        }
-    }
-    javaVM->DetachCurrentThread();
-    av_packet_free(&avPacket);
-    swr_free(&(player->swrContext));
-    avcodec_close(player->input_code_contx[player->audio_stream_index]);
-    return NULL;
-}
 
 //解码Video前进行初始化准备
 void decode_video_prepare(JNIEnv *env, jobject jSurface, SenPlayer *player) {
@@ -453,16 +426,16 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     decode_video_prepare(env, jSurface, player);
 
 
-//    //生产这线程
-//    pthread_create(&(player->play_read_thread_id), NULL,
-//                   player_read_from_stream,
-//                   (void *) player);
+    //生产这线程
+    pthread_create(&(player->play_read_thread_id), NULL,
+                   player_read_from_stream,
+                   (void *) player);
     //消费者线程
-//    pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
-//                   decodeAudioDataThreadRun,
-//                   (void *) player);
+    pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
+                   decodeDataThreadRun,
+                   (void *) player);
     pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
-                   decodeVideoDataThreadRun,
+                   decodeDataThreadRun,
                    (void *) player);
 
 
