@@ -7,6 +7,7 @@
  *              2.不断重音频Queue 获取AVpacket ，解码，播放
  * */
 #include <malloc.h>
+
 #include "vaqueue.h"
 struct _AVQueue{
     int size;
@@ -52,15 +53,34 @@ int get_next(AVQueue *queue,int current){
     return (current +1)%queue->size;
 }
 //压入对列
-void* queue_push(AVQueue *queue){
+void *queue_push(AVQueue *queue, pthread_mutex_t *mutex, pthread_cond_t *cond) {
     int current = queue->next_to_write;
-    queue->next_to_write=get_next(queue,current);
+    int next_to_write;
+    for(;;){
+        next_to_write =get_next(queue,current);
+        if (next_to_write !=queue->next_to_read){
+            break;
+        }
+        //阻塞
+        pthread_cond_wait(cond,mutex);
+    }
+    queue->next_to_write=next_to_write;
+    //通知
+    pthread_cond_broadcast(cond);
     return queue->tab[current];
 }
 //弹出对列
-void* queue_pop(AVQueue *queue){
+void *queue_pop(AVQueue *queue, pthread_mutex_t *mutex, pthread_cond_t *cond) {
     int current = queue->next_to_read;
+    for(;;){
+        if (queue->next_to_read !=queue->next_to_write){
+            break;
+        }
+        //阻塞
+        pthread_cond_wait(cond,mutex);
+    }
     queue->next_to_read=get_next(queue,current);
+    pthread_cond_broadcast(cond);
     return queue->tab[current];
 }
 

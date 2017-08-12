@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 //
 // Created by Administrator on 2017/8/11.
 //
@@ -13,8 +15,8 @@ void queue_free(AVQueue *queue,queue_free_fun free_fun);
 
 int get_next(AVQueue *queue, int current);
 //压入对列
-void *queue_push(AVQueue *queue);
+void *queue_push(AVQueue *queue, pthread_mutex_t *ptr, pthread_cond_t *ptr1);
 //弹出对列
-void* queue_pop(AVQueue *queue);
+void *queue_pop(AVQueue *queue, pthread_mutex_t *ptr, pthread_cond_t *ptr1);
 
 

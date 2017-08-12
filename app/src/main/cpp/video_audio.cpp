@@ -29,7 +29,7 @@ extern "C" {
 //44100HZ 16bit =2个字节
 #define MAX_AUDIO_FRAME_SIZE 44100 * 2
 //队列的长度
-#define PACKET_QUEUE_SIZE 500
+#define PACKET_QUEUE_SIZE 50
 JavaVM *javaVM;
 
 //定义一个结构体，用于封装一些参数（音视频共用的参数）
@@ -74,6 +74,11 @@ struct SenPlayer{
     AVFrame *in_frame_picture;
     AVFrame *out_frame_picture;
     ANativeWindow_Buffer outBuffer;
+
+    //互斥锁
+    pthread_mutex_t mutex;
+    //条件变量
+    pthread_cond_t cond;
 };
 //这个在子线程区分是那个线程过来的，
 struct DecodeData{
@@ -261,7 +266,9 @@ void *decodeDataThreadRun(void *args) {
     LOGE("decodeDataThreadRun  stream_index:%d",stream_index);
     //循环读取每一帧
     for (;;) {
-        AVPacket *avPacket = (AVPacket *) queue_pop(avQueue);
+        pthread_mutex_lock(&player->mutex);
+        AVPacket *avPacket = (AVPacket *) queue_pop(avQueue, &player->mutex, &player->cond);
+        pthread_mutex_unlock(&player->mutex);
         if (avPacket->stream_index == player->video_stream_index) {
             decodeVideoData(player, avPacket);
         }else if(avPacket->stream_index == player->audio_stream_index){
@@ -371,6 +378,7 @@ void* packet_free_queue(AVPacket *packet){
  * 初始化流的队列
  */
 void play_mallco_queue(SenPlayer *player){
+    LOGE("play_mallco_queue初始化：%d",player->total_stream_num);
     int i;
     for (int i = 0; i < player->total_stream_num; ++i) {
         if (i>=MAX_STREAM_ARRAY){
@@ -399,10 +407,12 @@ void* player_read_from_stream(void* args){
             //读完了
             break;
         }
-
         AVQueue* queue =  player->packet[avPacket->stream_index];
-        AVPacket* packet_data = (AVPacket *) queue_push(queue);
+        //需要锁上，如果读的线程也读到这里的话，那么需要等写完才能读
+        pthread_mutex_lock(&player->mutex);
+        AVPacket* packet_data = (AVPacket *) queue_push(queue, &player->mutex, &player->cond);
         *packet_data =packet;
+        pthread_mutex_unlock(&player->mutex);
         LOGE("packet_data:%x******%d",packet_data,avPacket->stream_index);
     }
 
@@ -440,6 +450,9 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     //初始化队列
     play_mallco_queue(player);
 
+    //初始化互斥锁和条件变量
+    pthread_mutex_init(&player->mutex,NULL);
+    pthread_cond_init(&player->cond,NULL);
     //生产这线程
     pthread_create(&(player->play_read_thread_id), NULL,
                    player_read_from_stream,
