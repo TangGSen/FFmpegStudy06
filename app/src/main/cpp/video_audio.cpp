@@ -29,7 +29,7 @@ extern "C" {
 //44100HZ 16bit =2个字节
 #define MAX_AUDIO_FRAME_SIZE 44100 * 2
 //队列的长度
-#define PACKET_QUEUE_SIZE 50
+#define PACKET_QUEUE_SIZE 500
 JavaVM *javaVM;
 
 //定义一个结构体，用于封装一些参数（音视频共用的参数）
@@ -60,7 +60,7 @@ struct SenPlayer{
     //解码线程数组id
     pthread_t deocde_thread_id[MAX_STREAM_ARRAY];
 
-    AVQueue **packet[MAX_STREAM_ARRAY];
+    AVQueue *packet[MAX_STREAM_ARRAY];
 
     //生产者线程id
     pthread_t play_read_thread_id;
@@ -256,14 +256,12 @@ void *decodeDataThreadRun(void *args) {
     int stream_index = decodeData->stream_index;
     JNIEnv *env;
     javaVM->AttachCurrentThread(&env, NULL);
-//第七步，解码
-    //从文件中读取一帧数据（压缩数据，一帧一帧得读）
-    //这个是读取帧数缓存在这里，需要开辟空间
-    AVPacket *avPacket = (AVPacket *) av_malloc(sizeof(AVPacket));
-
+    //根据stream _index 获取对应的队列
+    AVQueue *avQueue = (AVQueue *) player->packet[stream_index];
+    LOGE("decodeDataThreadRun  stream_index:%d",stream_index);
     //循环读取每一帧
-    while (av_read_frame(player->avFormatContext, avPacket) >= 0) {
-        //只需要视频流
+    for (;;) {
+        AVPacket *avPacket = (AVPacket *) queue_pop(avQueue);
         if (avPacket->stream_index == player->video_stream_index) {
             decodeVideoData(player, avPacket);
         }else if(avPacket->stream_index == player->audio_stream_index){
@@ -271,7 +269,6 @@ void *decodeDataThreadRun(void *args) {
         }
     }
     javaVM->DetachCurrentThread();
-    av_packet_free(&avPacket);
     av_frame_free(&player->in_frame_picture);
     av_frame_free(&player->out_frame_picture);
     sws_freeContext(player->swsContext);
@@ -361,7 +358,15 @@ void decode_audio_prepare(JNIEnv *env, SenPlayer *player, jobject jobj) {
     player->audio_write_mid = audio_write_mid;
     player->audio_track_obj = env->NewGlobalRef(audio_track_obj);
 }
-
+//给AVPacket 开辟空间，后面会将AVPacket栈内存数据拷贝到这里
+void* player_fill_packet(){
+    AVPacket *packet = (AVPacket *) malloc(sizeof(AVPacket));
+    return packet;
+}
+void* packet_free_queue(AVPacket *packet){
+    av_packet_unref(packet);
+    return 0;
+}
 /**
  * 初始化流的队列
  */
@@ -371,7 +376,7 @@ void play_mallco_queue(SenPlayer *player){
         if (i>=MAX_STREAM_ARRAY){
             return;
         }
-        player->packet[i] = (AVQueue **) queue_init(PACKET_QUEUE_SIZE);
+        player->packet[i] =  queue_init(PACKET_QUEUE_SIZE,(queue_fill_fun)player_fill_packet);
     }
 }
 
@@ -395,9 +400,10 @@ void* player_read_from_stream(void* args){
             break;
         }
 
-        AVQueue* queue = (AVQueue *) player->packet[avPacket->stream_index];
+        AVQueue* queue =  player->packet[avPacket->stream_index];
         AVPacket* packet_data = (AVPacket *) queue_push(queue);
-        packet_data =avPacket;
+        *packet_data =packet;
+        LOGE("packet_data:%x******%d",packet_data,avPacket->stream_index);
     }
 
 
@@ -435,13 +441,13 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     play_mallco_queue(player);
 
     //生产这线程
-//    pthread_create(&(player->play_read_thread_id), NULL,
-//                   player_read_from_stream,
-//                   (void *) player);
+    pthread_create(&(player->play_read_thread_id), NULL,
+                   player_read_from_stream,
+                   (void *) player);
     //消费者线程
     DecodeData *audio = (DecodeData *) malloc(sizeof(DecodeData));
     audio->player =player;
-    audio->stream_index= player->video_stream_index ;
+    audio->stream_index= player->audio_stream_index ;
 
     DecodeData *video = (DecodeData *) malloc(sizeof(DecodeData));
     video->player =player;
@@ -449,9 +455,9 @@ JNIEXPORT void JNICALL Java_sen_com_video_VideoAudioPlay_videoAudioPlayerV2
     pthread_create(&(player->deocde_thread_id[player->audio_stream_index]), NULL,
                    decodeDataThreadRun,
                    (void *) audio);
-//    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
-//                   decodeDataThreadRun,
-//                   (void *) video);
+    pthread_create(&(player->deocde_thread_id[player->video_stream_index]), NULL,
+                   decodeDataThreadRun,
+                   (void *) video);
 
 
 

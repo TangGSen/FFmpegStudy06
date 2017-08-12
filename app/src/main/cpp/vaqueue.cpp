@@ -19,18 +19,19 @@ struct _AVQueue{
 
 };
 /**
+ * 使用回调函数来开辟元素的内存
  * init queue
  * @param size
  * @return
  */
-AVQueue* queue_init(int size){
+AVQueue* queue_init(int size,queue_fill_fun fill_fun){
     AVQueue *avQueue = (AVQueue *) malloc(sizeof(AVQueue));
     avQueue->size =size;
     avQueue->next_to_read=0;
     avQueue->next_to_write =0;
     avQueue->tab = (void **) malloc(sizeof(*avQueue->tab) * size);
     for (int i = 0; i < size; ++i) {
-        avQueue->tab[i] =malloc(sizeof(*avQueue->tab));
+        avQueue->tab[i] =fill_fun();
     }
     return avQueue;
 }
@@ -39,10 +40,10 @@ AVQueue* queue_init(int size){
  * free queue
  * @param queue
  */
-void queue_free(AVQueue *queue){
+void queue_free(AVQueue *queue,queue_free_fun free_fun){
     int size = queue->size;
     for (int i = 0; i < size; ++i) {
-        free( queue->tab[i]);
+        free_fun((void *) queue->tab[i]);
     }
     free(queue->tab);
     free(queue);
