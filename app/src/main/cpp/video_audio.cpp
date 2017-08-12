@@ -7,6 +7,10 @@
 #include "unistd.h"
 #include "vaqueue.h"
 
+/**
+ * 未解决部分：音视频同步，和有些视频崩溃
+ */
+
 extern "C" {
 
 //编解码库
