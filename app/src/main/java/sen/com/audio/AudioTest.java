@@ -12,7 +12,7 @@ import android.view.Surface;
 public class AudioTest {
 
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("natives-lib");
     }
 
 

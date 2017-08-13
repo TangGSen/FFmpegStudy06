@@ -76,8 +76,8 @@ static inline uint64_t av_const av_bswap64(uint64_t x)
 }
 #endif
 
-// be2ne ... big-endian to native-endian
-// le2ne ... little-endian to native-endian
+// be2ne ... big-endian to natives-endian
+// le2ne ... little-endian to natives-endian
 
 #if AV_HAVE_BIGENDIAN
 #define av_be2ne16(x) (x)

@@ -7,7 +7,7 @@ package sen.com.thread;
 public class PThread {
 
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("natives-lib");
     }
     public native void createThread();
 

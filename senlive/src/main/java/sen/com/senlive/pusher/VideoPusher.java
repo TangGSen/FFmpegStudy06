@@ -7,6 +7,7 @@ import android.view.SurfaceHolder;
 import java.io.IOException;
 
 import sen.com.senlive.config.VideoParmas;
+import sen.com.senlive.natives.PushNative;
 
 /**
  * Created by Administrator on 2017/8/13.
@@ -14,15 +15,17 @@ import sen.com.senlive.config.VideoParmas;
 
 public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camera.PreviewCallback {
     private final VideoParmas mVideoParmas;
+    private  PushNative mPushNative;
     private SurfaceHolder mSurfaceHolder;
     private Camera mCamera;
     private byte[] callbackBuffer;
     private boolean isPushing;
 
-    public VideoPusher(SurfaceHolder holder, VideoParmas videoParmas) {
+    public VideoPusher(SurfaceHolder holder, VideoParmas videoParmas, PushNative pushNative) {
         this.mSurfaceHolder = holder;
         this.mVideoParmas = videoParmas;
         mSurfaceHolder.addCallback(this);
+        this.mPushNative =pushNative;
 
     }
 
@@ -109,6 +112,7 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
 
         if (isPushing){
             //传到native 编码
+            mPushNative.sendVideo(data);
         }
 
 

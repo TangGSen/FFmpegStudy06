@@ -11,6 +11,7 @@ public class MainActivity extends AppCompatActivity {
 
     private SurfaceView surfaceView;
     private LivePusher livePusher;
+    private String liveUrl="";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startLive(View view){
-        livePusher.startPusher();
+        livePusher.startPusher(liveUrl);
     }
     public void stopLive(View view){
         livePusher.stopPusher();

@@ -6,7 +6,7 @@ package sen.com.ffmpegstudy06;
 
 public class FFmpegTest {
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("natives-lib");
     }
 
     public native String getConfigInfo();

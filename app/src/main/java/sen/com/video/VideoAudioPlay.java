@@ -11,7 +11,7 @@ import android.view.Surface;
 
 public class VideoAudioPlay {
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("natives-lib");
     }
     //多线程 音视频同步
     public native void videoAudioPlayerV2(String filePath,String audioOutFilePath, Surface surface);

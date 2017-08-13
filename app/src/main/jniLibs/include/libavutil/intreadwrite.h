@@ -51,7 +51,7 @@ typedef union {
  * Preprocessor symbols must be defined, even if these are implemented
  * as inline functions.
  *
- * R/W means read/write, B/L/N means big/little/native endianness.
+ * R/W means read/write, B/L/N means big/little/natives endianness.
  * The following macros require aligned access, compared to their
  * unaligned variants: AV_(COPY|SWAP|ZERO)(64|128), AV_[RW]N[8-64]A.
  * Incorrect usage may range from abysmal performance to crash

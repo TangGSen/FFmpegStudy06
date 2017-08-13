@@ -3,9 +3,9 @@ package sen.com.senlive.pusher;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.util.Log;
 
 import sen.com.senlive.config.AudioParams;
+import sen.com.senlive.natives.PushNative;
 
 /**
  * Created by Administrator on 2017/8/13.
@@ -16,8 +16,10 @@ public class AudioPusher extends Pusher {
     private AudioRecord mAudioRecord;
     private final int bufferSizeInBytes;
     private boolean isPushing;
+    private  PushNative mPushNative;
 
-    public AudioPusher(AudioParams audioParams) {
+    public AudioPusher(AudioParams audioParams, PushNative pushNative) {
+        this.mPushNative =pushNative;
         this.mAudioParams = audioParams;
         int channelConfig = audioParams.getChancle() == 1 ? AudioFormat.CHANNEL_IN_MONO : AudioFormat.CHANNEL_IN_STEREO;
         int sampleRateInHz = audioParams.getSamlpRateInHz();
@@ -57,7 +59,7 @@ public class AudioPusher extends Pusher {
                 byte[] data = new byte[bufferSizeInBytes];
                 int len = mAudioRecord.read(data, 0, data.length);
                 if (len >= 0) {
-                    Log.e("sen","Audio");
+                    mPushNative.sendAudio(data,len);
                 }
             }
         }

@@ -10,7 +10,7 @@ import android.view.Surface;
 
 public class VideoPlayContrlor {
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("natives-lib");
     }
     //绘制到surfaceView 上
     public native void render(String filePath, Surface surface);

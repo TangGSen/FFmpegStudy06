@@ -5,6 +5,7 @@ import android.view.SurfaceHolder;
 
 import sen.com.senlive.config.AudioParams;
 import sen.com.senlive.config.VideoParmas;
+import sen.com.senlive.natives.PushNative;
 
 /**
  * Created by Administrator on 2017/8/13.
@@ -15,6 +16,7 @@ public class LivePusher  implements SurfaceHolder.Callback {
     private  SurfaceHolder mSurfaceHolder;
     private VideoPusher videoPusher;
     private AudioPusher audioPusher;
+    private PushNative pushNative;
 
     public LivePusher(SurfaceHolder holder){
         this.mSurfaceHolder = holder;
@@ -25,9 +27,10 @@ public class LivePusher  implements SurfaceHolder.Callback {
     /**
      * 开始推流
      */
-    public void startPusher() {
+    public void startPusher(String url) {
         videoPusher.startPusher();
         audioPusher.startPusher();
+        pushNative.startPush(url);
     }
 
     /**
@@ -36,6 +39,7 @@ public class LivePusher  implements SurfaceHolder.Callback {
     public void stopPusher() {
         videoPusher.stopPusher();
         audioPusher.stopPusher();
+        pushNative.stopPush();
     }
 
     /**
@@ -44,14 +48,16 @@ public class LivePusher  implements SurfaceHolder.Callback {
     private void release(){
         videoPusher.release();
         audioPusher.release();
+        pushNative.release();
     }
 
     private void prepare() {
+        pushNative = new PushNative();
         //如果只有一个摄像头的话，不能切换
         VideoParmas videoParmas = new VideoParmas(480,320, Camera.CameraInfo.CAMERA_FACING_BACK);
-        videoPusher = new VideoPusher(mSurfaceHolder,videoParmas);
+        videoPusher = new VideoPusher(mSurfaceHolder,videoParmas, pushNative);
         AudioParams audioParams = new AudioParams(44100,1);
-        audioPusher = new AudioPusher(audioParams);
+        audioPusher = new AudioPusher(audioParams, pushNative);
     }
 
 
