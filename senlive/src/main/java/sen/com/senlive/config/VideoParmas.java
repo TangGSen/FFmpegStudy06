@@ -8,11 +8,18 @@ public class VideoParmas {
     private int width;
     private int heigth;
     private int carameId;
+    //码率 480000 （480 kpps）
+    private int bitrate;
+    //帧频（手机上一般是25，也就是每秒25个画面）
+    private int fps;
 
-    public VideoParmas(int width, int heigth, int carameId) {
+
+    public VideoParmas(int width, int heigth,  int bitrate, int fps,int carameId) {
         this.width = width;
         this.heigth = heigth;
         this.carameId = carameId;
+        this.bitrate = bitrate;
+        this.fps = fps;
     }
 
     public int getWidth() {
@@ -37,5 +44,21 @@ public class VideoParmas {
 
     public void setCarameId(int carameId) {
         this.carameId = carameId;
+    }
+
+    public int getBitrate() {
+        return bitrate;
+    }
+
+    public void setBitrate(int bitrate) {
+        this.bitrate = bitrate;
+    }
+
+    public int getFps() {
+        return fps;
+    }
+
+    public void setFps(int fps) {
+        this.fps = fps;
     }
 }

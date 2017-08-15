@@ -5,6 +5,9 @@ package sen.com.senlive.natives;
  */
 
 public class PushNative {
+    static {
+        System.loadLibrary("native-lib");
+    }
     /**
      * 发送视频数据
      * @param data

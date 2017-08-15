@@ -11,32 +11,32 @@ set(distribution_DIR ${CMAKE_SOURCE_DIR}/../../../../src/main/jniLibs)
 
 add_library(
             libfaac
-            SHARED
+            STATIC
             IMPORTED)
 set_target_properties(
             libfaac
             PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/armeabi/libfaac.so)
+            ../../../../src/main/jniLibs/include/faac/libfaac.a)
 
 
 add_library(
             librtmp
-            SHARED
+            STATIC
             IMPORTED)
 set_target_properties(
             librtmp
             PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/armeabi/librtmp)
+            ../../../../src/main/jniLibs/include/rtmp/librtmp.a)
 
 # 封装格式处理库
 add_library(
             libx264
-            SHARED
+            STATIC
             IMPORTED)
 set_target_properties(
             libx264
             PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/armeabi/libx264.so)
+            ../../../../src/main/jniLibs/include/x264/libx264.a)
 
 #配置编译的头文件
 

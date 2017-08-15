@@ -31,6 +31,10 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
 
     @Override
     public void startPusher() {
+        mPushNative.setVideoOptions(mVideoParmas.getWidth(),
+                mVideoParmas.getHeigth(),
+                mVideoParmas.getBitrate(),
+                mVideoParmas.getFps());
         isPushing = true;
     }
 
@@ -108,7 +112,6 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
     //多久回调一次跟帧频有关
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
-        Log.e("sen", "senVideo");
 
         if (isPushing){
             //传到native 编码

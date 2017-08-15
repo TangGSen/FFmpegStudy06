@@ -54,7 +54,8 @@ public class LivePusher  implements SurfaceHolder.Callback {
     private void prepare() {
         pushNative = new PushNative();
         //如果只有一个摄像头的话，不能切换
-        VideoParmas videoParmas = new VideoParmas(480,320, Camera.CameraInfo.CAMERA_FACING_BACK);
+        //帧频（手机上一般是25，也就是每秒25个画面）,码率 480000 （480 kpps）
+        VideoParmas videoParmas = new VideoParmas(480,320,480000,25, Camera.CameraInfo.CAMERA_FACING_BACK);
         videoPusher = new VideoPusher(mSurfaceHolder,videoParmas, pushNative);
         AudioParams audioParams = new AudioParams(44100,1);
         audioPusher = new AudioPusher(audioParams, pushNative);

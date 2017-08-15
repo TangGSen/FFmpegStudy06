@@ -1,1 +1,1 @@
-include ':app', ':thread', ':senlive'
+include ':app', ':senlive'
