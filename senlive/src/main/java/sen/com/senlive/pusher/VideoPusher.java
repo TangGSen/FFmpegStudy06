@@ -1,7 +1,7 @@
 package sen.com.senlive.pusher;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.util.Log;
 import android.view.SurfaceHolder;
 
 import java.io.IOException;
@@ -77,6 +77,13 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
     private void startCamera() {
         try {
             mCamera = Camera.open(mVideoParmas.getCarameId());
+            Camera.Parameters parameters = mCamera.getParameters();
+            //设置相机预览格式，NV21 是YUV格式不过是YVU
+            parameters.setPreviewFormat(ImageFormat.NV21);
+            parameters.setPreviewSize(mVideoParmas.getWidth(),mVideoParmas.getHeigth());
+            //帧频
+            parameters.setPreviewFpsRange(mVideoParmas.getBitrate()-1,mVideoParmas.getBitrate());
+            mCamera.setParameters(parameters);
             mCamera.setDisplayOrientation(90);
             mCamera.setPreviewDisplay(mSurfaceHolder);
             //获取摄像头预览数据

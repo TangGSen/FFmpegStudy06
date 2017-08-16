@@ -11,32 +11,32 @@ set(distribution_DIR ${CMAKE_SOURCE_DIR}/../../../../src/main/jniLibs)
 
 add_library(
             libfaac
-            STATIC
+            SHARED
             IMPORTED)
 set_target_properties(
             libfaac
             PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/include/faac/libfaac.a)
+            ../../../../src/main/jniLibs/armeabi/libfaac.so)
 
 
 add_library(
             librtmp
-            STATIC
+            SHARED
             IMPORTED)
 set_target_properties(
             librtmp
             PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/include/rtmp/librtmp.a)
+            ../../../../src/main/jniLibs/armeabi/librtmp.so)
 
 # 封装格式处理库
 add_library(
             libx264
-            STATIC
+            SHARED
             IMPORTED)
 set_target_properties(
             libx264
             PROPERTIES IMPORTED_LOCATION
-            ../../../../src/main/jniLibs/include/x264/libx264.a)
+            ../../../../src/main/jniLibs/armeabi/libx264.so)
 
 #配置编译的头文件
 
@@ -71,6 +71,7 @@ add_library( # Sets the name of the library.
              # Associated headers in the same location as their source
              # file are automatically included.
              src/main/cpp/push_native.cpp
+             src/main/cpp/queue.cpp
             )
 
 # Searches for a specified prebuilt library and stores the path as a

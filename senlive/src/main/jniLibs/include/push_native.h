@@ -63,6 +63,11 @@ JNIEXPORT void JNICALL Java_sen_com_senlive_natives_PushNative_setVideoOptions
 JNIEXPORT void JNICALL Java_sen_com_senlive_natives_PushNative_setAudioOptions
   (JNIEnv *, jobject, jint, jint);
 
+//发送普通帧
+void add_x264_body(unsigned char* buf, int len);
+//将pps 和sps 添加到关键帧并发送
+void add_sueque_header(unsigned char* sps, unsigned char* pps, int sps_len, int pps_len);
+
 #ifdef __cplusplus
 }
 #endif
