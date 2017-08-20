@@ -1,4 +1,4 @@
-package sen.com.thread;
+package sen.com.openssl;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("sen.com.thread", appContext.getPackageName());
+        assertEquals("sen.com.openssl", appContext.getPackageName());
     }
 }

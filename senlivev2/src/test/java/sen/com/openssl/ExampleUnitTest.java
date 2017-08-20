@@ -1,4 +1,4 @@
-package sen.com.thread;
+package sen.com.openssl;
 
 import org.junit.Test;
 
