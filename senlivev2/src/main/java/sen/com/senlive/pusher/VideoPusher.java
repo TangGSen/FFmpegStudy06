@@ -122,7 +122,7 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
 
         if (isPushing){
             //传到native 编码
-//            mPushNative.sendVideo(data);
+            mPushNative.sendVideo(data);
         }
 
 

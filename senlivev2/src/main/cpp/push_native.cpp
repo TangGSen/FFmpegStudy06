@@ -91,7 +91,7 @@ void* push_thread(void* args){
         LOGE("rtmp init fail");
         goto end;
     }
-    start_time = RTMP_GetTime();
+
     RTMP_Init(rtmp);
     rtmp->Link.timeout=5;
     RTMP_SetupURL(rtmp,rtmp_path);
@@ -104,8 +104,11 @@ void* push_thread(void* args){
         goto end;
     }
     //计时
-
+    start_time = RTMP_GetTime();
     //建立Rtmp 链接
+    if(!RTMP_ConnectStream(rtmp,0)){ //连接流
+        goto end;
+    }
     while(isPushing){
         LOGE("push_thread start");
         pthread_mutex_lock(&mutex);

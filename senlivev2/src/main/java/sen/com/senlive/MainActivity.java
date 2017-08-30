@@ -11,7 +11,7 @@ public class MainActivity extends AppCompatActivity {
 
     private SurfaceView surfaceView;
     private LivePusher livePusher;
-    private String liveUrl="rtmp:/47.92.102.73:8080/live/tjsen";
+    private String liveUrl="rtmp://47.92.102.73/live/tjsen";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
