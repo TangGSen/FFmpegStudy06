@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="sen.com.ndk_image.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+
+        <Button
+            android:id="@+id/src_imag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="src_imag"
+            android:text="原图" />
+
+        <Button
+            android:id="@+id/java_imag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="java_imag"
+            android:text="java" />
+
+        <Button
+            android:id="@+id/ndk_imag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="ndk_imag"
+            android:text="ndk"
+            />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</LinearLayout>
