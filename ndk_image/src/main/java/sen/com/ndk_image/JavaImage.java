@@ -7,7 +7,7 @@ import android.graphics.Color;
  * Author : 唐家森
  * Version: 1.0
  * On     : 2017/9/4 09:42
- * Des    :
+ * Des    : 这个应该放在子线程，要不就是ANR
  */
 
 public class JavaImage {
